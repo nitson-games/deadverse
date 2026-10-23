@@ -1,0 +1,1903 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DEADVERSE • پنل مدیریت</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0a0a12;
+      --bg-2: #10101c;
+      --bg-3: #161624;
+      --border: rgba(255,255,255,0.08);
+      --text: #e8e8f0;
+      --text-dim: #8a8a9e;
+      --red: #e63946;
+      --red-dark: #c1121f;
+      --blue: #3a86ff;
+      --green: #2ed573;
+      --purple: #9d4edd;
+      --sidebar-w: 260px;
+    }
+
+    body {
+      font-family: 'Vazirmatn', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+    body[data-lang="en"] {
+      font-family: 'Vazirmatn', 'Inter', sans-serif;
+      direction: ltr;
+    }
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(circle at 10% 10%, rgba(230,57,70,0.06) 0%, transparent 40%),
+        radial-gradient(circle at 90% 90%, rgba(58,134,255,0.05) 0%, transparent 40%);
+      pointer-events: none; z-index: 0;
+    }
+
+    /* ============ LOGIN ============ */
+    #loginScreen {
+      position: fixed; inset: 0; z-index: 5000;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--bg);
+      transition: opacity 0.5s, visibility 0.5s;
+      overflow-y: auto; padding: 20px;
+    }
+    #loginScreen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    .login-box {
+      width: 100%; max-width: 420px; padding: 36px 30px;
+      background: var(--bg-2); border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      position: relative; z-index: 1;
+      margin: auto;
+    }
+    .login-logo {
+      font-size: 1.6rem; font-weight: 900; text-align: center;
+      margin-bottom: 6px; letter-spacing: 2px;
+    }
+    .login-logo span { color: var(--red); }
+    .login-sub {
+      text-align: center; color: var(--text-dim);
+      font-size: 0.82rem; margin-bottom: 26px;
+    }
+    .login-box label {
+      display: block; font-size: 0.8rem; font-weight: 600;
+      color: var(--text-dim); margin-bottom: 6px;
+    }
+    .login-box input {
+      width: 100%; padding: 12px 16px; border-radius: 10px;
+      border: 1px solid var(--border); background: var(--bg-3);
+      color: var(--text); font-size: 0.9rem; font-family: inherit;
+      outline: none; margin-bottom: 16px;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    .login-box input:focus {
+      border-color: var(--red);
+      box-shadow: 0 0 0 3px rgba(230,57,70,0.12);
+    }
+    .login-btn {
+      width: 100%; padding: 13px; border-radius: 10px;
+      border: none; background: linear-gradient(135deg, var(--red), var(--red-dark));
+      color: #fff; font-size: 0.95rem; font-weight: 700;
+      font-family: inherit; cursor: pointer; transition: all 0.3s;
+      margin-top: 8px;
+    }
+    .login-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(230,57,70,0.4);
+    }
+    .login-hint {
+      text-align: center; font-size: 0.75rem; color: var(--text-dim);
+      margin-top: 18px; padding: 10px;
+      background: rgba(58,134,255,0.08);
+      border-radius: 8px; border: 1px solid rgba(58,134,255,0.15);
+    }
+    .login-error {
+      color: #ff6b7a; font-size: 0.8rem; text-align: center;
+      margin-top: 12px; display: none;
+    }
+    .login-error.show { display: block; }
+
+    /* Captcha */
+    .captcha-box {
+      display: flex; align-items: stretch; gap: 8px; margin-bottom: 16px;
+    }
+    .captcha-box input {
+      margin-bottom: 0 !important;
+      flex: 1;
+    }
+    .captcha-question {
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 16px; border-radius: 10px;
+      background: var(--bg-3); border: 1px solid var(--border);
+      font-size: 1rem; font-weight: 800; color: #fff;
+      letter-spacing: 1px; min-width: 110px;
+      font-family: inherit;
+      user-select: none;
+    }
+    .captcha-refresh {
+      width: 42px; border-radius: 10px;
+      border: 1px solid var(--border); background: var(--bg-3);
+      color: var(--text-dim); cursor: pointer; font-size: 1rem;
+      transition: all 0.2s;
+    }
+    .captcha-refresh:hover {
+      border-color: var(--blue); color: var(--blue);
+    }
+
+    /* ============ LAYOUT ============ */
+    .admin-layout {
+      display: flex; min-height: 100vh; position: relative; z-index: 1;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: var(--sidebar-w); background: var(--bg-2);
+      border-left: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      position: fixed; top: 0; right: 0; bottom: 0; z-index: 100;
+      transition: transform 0.35s cubic-bezier(0.77,0,0.18,1);
+    }
+    body[data-lang="en"] .sidebar {
+      right: auto; left: 0;
+      border-left: none; border-right: 1px solid var(--border);
+    }
+    .sidebar-header {
+      padding: 22px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .sidebar-logo { font-size: 1.3rem; font-weight: 900; letter-spacing: 2px; }
+    .sidebar-logo span { color: var(--red); }
+    .sidebar-badge {
+      font-size: 0.62rem; background: rgba(230,57,70,0.15);
+      color: #ff6b7a; padding: 3px 8px; border-radius: 20px;
+      font-weight: 700; letter-spacing: 0.5px;
+    }
+    .sidebar-nav {
+      flex: 1; overflow-y: auto; padding: 16px 12px;
+    }
+    .sidebar-nav::-webkit-scrollbar { width: 5px; }
+    .sidebar-nav::-webkit-scrollbar-thumb { background: var(--bg-3); border-radius: 3px; }
+    .nav-section-label {
+      font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1.5px;
+      color: var(--text-dim); padding: 14px 12px 6px; font-weight: 700;
+    }
+    .sidebar-link {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 14px; border-radius: 10px;
+      color: var(--text-dim); text-decoration: none; font-size: 0.88rem;
+      font-weight: 500; cursor: pointer; transition: all 0.2s;
+      border: none; background: none; width: 100%; text-align: right;
+      font-family: inherit; margin-bottom: 2px;
+    }
+    body[data-lang="en"] .sidebar-link { text-align: left; }
+    .sidebar-link:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+    .sidebar-link.active {
+      background: linear-gradient(90deg, rgba(230,57,70,0.15), rgba(230,57,70,0.05));
+      color: #fff; font-weight: 600;
+      box-shadow: inset 3px 0 0 var(--red);
+    }
+    body[data-lang="en"] .sidebar-link.active {
+      box-shadow: inset -3px 0 0 var(--red);
+    }
+    .sidebar-link .icon {
+      font-size: 1.05rem; width: 22px; text-align: center; flex-shrink: 0;
+    }
+    .sidebar-link .badge {
+      margin-right: auto; font-size: 0.65rem; background: var(--red);
+      color: #fff; padding: 2px 7px; border-radius: 20px; font-weight: 700;
+    }
+    body[data-lang="en"] .sidebar-link .badge { margin-right: 0; margin-left: auto; }
+
+    .sidebar-footer {
+      padding: 16px; border-top: 1px solid var(--border);
+    }
+    .admin-user {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px; border-radius: 10px; background: var(--bg-3);
+      margin-bottom: 10px;
+    }
+    .admin-avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--red), var(--blue));
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 0.8rem; color: #fff; flex-shrink: 0;
+    }
+    .admin-info { overflow: hidden; }
+    .admin-name {
+      font-size: 0.82rem; font-weight: 700;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .admin-role { font-size: 0.68rem; color: var(--text-dim); }
+    .logout-btn {
+      width: 100%; padding: 9px; border-radius: 8px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--text-dim); font-size: 0.78rem; font-family: inherit;
+      cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .logout-btn:hover {
+      border-color: var(--red); color: var(--red);
+      background: rgba(230,57,70,0.05);
+    }
+
+    /* Main */
+    .main {
+      flex: 1; margin-right: var(--sidebar-w); min-width: 0;
+      display: flex; flex-direction: column;
+    }
+    body[data-lang="en"] .main { margin-right: 0; margin-left: var(--sidebar-w); }
+
+    .topbar {
+      position: sticky; top: 0; z-index: 90;
+      background: rgba(10,10,18,0.85);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px; display: flex; align-items: center;
+      justify-content: space-between; gap: 16px;
+    }
+    .topbar-title { font-size: 1rem; font-weight: 700; }
+    .topbar-actions { display: flex; align-items: center; gap: 10px; }
+    .topbar-btn {
+      padding: 8px 16px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--bg-3);
+      color: var(--text); font-size: 0.78rem; font-family: inherit;
+      cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; gap: 6px; white-space: nowrap;
+    }
+    .topbar-btn:hover { border-color: var(--red); color: var(--red); }
+    .topbar-btn.primary {
+      background: var(--red); border-color: var(--red); color: #fff;
+    }
+    .topbar-btn.primary:hover {
+      background: var(--red-dark);
+      box-shadow: 0 0 16px rgba(230,57,70,0.35);
+    }
+    .menu-toggle {
+      display: none; background: none; border: none;
+      color: var(--text); font-size: 1.3rem; cursor: pointer; padding: 4px;
+    }
+
+    .content { padding: 28px 24px; flex: 1; }
+
+    /* ============ PAGES ============ */
+    .page { display: none; animation: fadeIn 0.35s ease; }
+    .page.active { display: block; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .page-header { margin-bottom: 24px; }
+    .page-header h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 4px; }
+    .page-header p { font-size: 0.85rem; color: var(--text-dim); }
+
+    /* Stats */
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px; margin-bottom: 28px;
+    }
+    .stat-card {
+      background: var(--bg-2); border: 1px solid var(--border);
+      border-radius: 14px; padding: 20px; position: relative;
+      overflow: hidden; transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .stat-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+    .stat-card::before {
+      content: ''; position: absolute; top: 0; right: 0;
+      width: 80px; height: 80px; border-radius: 50%;
+      filter: blur(30px); opacity: 0.3;
+    }
+    .stat-card.red::before { background: var(--red); }
+    .stat-card.blue::before { background: var(--blue); }
+    .stat-card.green::before { background: var(--green); }
+    .stat-card.purple::before { background: var(--purple); }
+    .stat-icon { font-size: 1.4rem; margin-bottom: 10px; }
+    .stat-value { font-size: 1.8rem; font-weight: 900; line-height: 1; margin-bottom: 4px; }
+    .stat-label { font-size: 0.78rem; color: var(--text-dim); }
+
+    /* Data Table */
+    .data-card {
+      background: var(--bg-2); border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden;
+    }
+    .data-card-header {
+      padding: 18px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; flex-wrap: wrap;
+    }
+    .data-card-header h3 { font-size: 1rem; font-weight: 700; }
+    .data-card-header .count {
+      font-size: 0.72rem; background: var(--bg-3);
+      color: var(--text-dim); padding: 3px 10px;
+      border-radius: 20px; margin-right: 8px;
+    }
+    body[data-lang="en"] .data-card-header .count { margin-right: 0; margin-left: 8px; }
+
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      text-align: right; padding: 12px 16px; font-size: 0.72rem;
+      text-transform: uppercase; letter-spacing: 0.8px;
+      color: var(--text-dim); font-weight: 700;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0,0,0,0.2); white-space: nowrap;
+    }
+    body[data-lang="en"] thead th { text-align: left; }
+    tbody td {
+      padding: 13px 16px; font-size: 0.85rem;
+      border-bottom: 1px solid var(--border); vertical-align: middle;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,0.02); }
+
+    .td-title {
+      font-weight: 600; color: var(--text); max-width: 280px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .td-desc {
+      color: var(--text-dim); font-size: 0.8rem; max-width: 320px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .thumb {
+      width: 44px; height: 44px; border-radius: 8px;
+      object-fit: cover; border: 1px solid var(--border);
+      background: var(--bg-3); display: block;
+    }
+    .thumb-empty {
+      width: 44px; height: 44px; border-radius: 8px;
+      border: 1px dashed var(--border); background: var(--bg-3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem; color: var(--text-dim);
+    }
+
+    .tag {
+      display: inline-block; font-size: 0.68rem; padding: 3px 10px;
+      border-radius: 20px; font-weight: 600; white-space: nowrap;
+    }
+    .tag-marvel { background: rgba(230,57,70,0.15); color: #ff6b7a; }
+    .tag-dc { background: rgba(58,134,255,0.15); color: #6ba3ff; }
+    .tag-neutral { background: rgba(255,255,255,0.06); color: #aaa; }
+    .tag-green { background: rgba(46,213,115,0.12); color: var(--green); }
+
+    .actions-cell { display: flex; gap: 6px; white-space: nowrap; }
+    .icon-btn {
+      width: 30px; height: 30px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--bg-3);
+      color: var(--text-dim); cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 0.78rem; transition: all 0.2s;
+    }
+    .icon-btn:hover {
+      border-color: var(--blue); color: var(--blue);
+      background: rgba(58,134,255,0.08);
+    }
+    .icon-btn.danger:hover {
+      border-color: var(--red); color: var(--red);
+      background: rgba(230,57,70,0.08);
+    }
+
+    /* Form */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .form-grid.full { grid-template-columns: 1fr; }
+    .form-field { display: flex; flex-direction: column; gap: 6px; }
+    .form-field.full { grid-column: 1 / -1; }
+    .form-field label {
+      font-size: 0.8rem; font-weight: 600; color: var(--text-dim);
+    }
+    .form-field label .req { color: var(--red); }
+    .form-field input,
+    .form-field select,
+    .form-field textarea {
+      padding: 11px 14px; border-radius: 9px;
+      border: 1px solid var(--border); background: var(--bg-3);
+      color: var(--text); font-size: 0.88rem; font-family: inherit;
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+      width: 100%;
+    }
+    .form-field input:focus,
+    .form-field select:focus,
+    .form-field textarea:focus {
+      border-color: var(--red);
+      box-shadow: 0 0 0 3px rgba(230,57,70,0.1);
+    }
+    .form-field textarea { min-height: 100px; resize: vertical; }
+    .form-field .hint { font-size: 0.7rem; color: var(--text-dim); }
+
+    /* Image uploader */
+    .img-uploader {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 12px; border: 1px dashed var(--border);
+      border-radius: 10px; background: rgba(255,255,255,0.02);
+    }
+    .img-preview {
+      width: 90px; height: 90px; border-radius: 10px;
+      object-fit: cover; border: 1px solid var(--border);
+      background: var(--bg-3); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-dim); font-size: 0.7rem; text-align: center;
+      overflow: hidden;
+    }
+    .img-preview img { width: 100%; height: 100%; object-fit: cover; }
+    .img-uploader-actions { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+    .upload-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 6px; padding: 9px 16px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--bg-3);
+      color: var(--text); font-size: 0.8rem; font-family: inherit;
+      cursor: pointer; transition: all 0.2s; text-align: center;
+    }
+    .upload-btn:hover {
+      border-color: var(--blue); color: var(--blue);
+      background: rgba(58,134,255,0.06);
+    }
+    .upload-btn.danger:hover {
+      border-color: var(--red); color: var(--red);
+      background: rgba(230,57,70,0.06);
+    }
+    .upload-hint { font-size: 0.7rem; color: var(--text-dim); }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(6px); z-index: 1000;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px; opacity: 0; visibility: hidden;
+      transition: opacity 0.3s, visibility 0.3s;
+    }
+    .modal-overlay.open { opacity: 1; visibility: visible; }
+    .modal {
+      background: var(--bg-2); border: 1px solid var(--border);
+      border-radius: 16px; width: 100%; max-width: 680px;
+      max-height: 92vh; overflow-y: auto;
+      transform: scale(0.95); transition: transform 0.3s;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+    }
+    .modal-overlay.open .modal { transform: scale(1); }
+    .modal-header {
+      padding: 20px 24px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; background: var(--bg-2); z-index: 1;
+    }
+    .modal-header h3 { font-size: 1.05rem; font-weight: 700; }
+    .modal-close {
+      width: 32px; height: 32px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--bg-3);
+      color: var(--text-dim); cursor: pointer; font-size: 1rem;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+    }
+    .modal-close:hover { border-color: var(--red); color: var(--red); }
+    .modal-body { padding: 24px; }
+    .modal-footer {
+      padding: 16px 24px; border-top: 1px solid var(--border);
+      display: flex; gap: 10px; justify-content: flex-end;
+      position: sticky; bottom: 0; background: var(--bg-2);
+    }
+    body[data-lang="fa"] .modal-footer { justify-content: flex-start; }
+
+    .btn {
+      padding: 10px 22px; border-radius: 9px;
+      border: 1px solid var(--border); background: var(--bg-3);
+      color: var(--text); font-size: 0.85rem; font-family: inherit;
+      font-weight: 600; cursor: pointer; transition: all 0.2s;
+    }
+    .btn:hover { border-color: var(--text-dim); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--red), var(--red-dark));
+      border-color: var(--red); color: #fff;
+    }
+    .btn-primary:hover {
+      box-shadow: 0 4px 20px rgba(230,57,70,0.4);
+      transform: translateY(-1px);
+    }
+    .btn-danger {
+      background: rgba(230,57,70,0.1);
+      border-color: rgba(230,57,70,0.3); color: #ff6b7a;
+    }
+    .btn-danger:hover {
+      background: var(--red); color: #fff; border-color: var(--red);
+    }
+
+    /* Toast */
+    .toast-container {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%); z-index: 3000;
+      display: flex; flex-direction: column; gap: 8px; align-items: center;
+    }
+    .toast {
+      padding: 12px 22px; border-radius: 10px;
+      background: var(--bg-3); border: 1px solid var(--border);
+      font-size: 0.85rem; font-weight: 600;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      animation: toastIn 0.3s ease;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .toast.success { border-color: rgba(46,213,115,0.4); color: var(--green); }
+    .toast.error { border-color: rgba(230,57,70,0.4); color: #ff6b7a; }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Empty state */
+    .empty-state { padding: 50px 20px; text-align: center; color: var(--text-dim); }
+    .empty-state .icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.5; }
+    .empty-state p { font-size: 0.88rem; }
+
+    /* Toolbar */
+    .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .search-mini { position: relative; }
+    .search-mini input {
+      padding: 8px 34px 8px 14px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--bg-3);
+      color: var(--text); font-size: 0.82rem; font-family: inherit;
+      outline: none; width: 220px; transition: border-color 0.2s;
+    }
+    body[data-lang="fa"] .search-mini input { padding: 8px 14px 8px 34px; }
+    .search-mini input:focus { border-color: var(--red); }
+    .search-mini::after {
+      content: '⌕'; position: absolute; right: 12px; top: 50%;
+      transform: translateY(-50%); color: var(--text-dim);
+      pointer-events: none; font-size: 0.9rem;
+    }
+    body[data-lang="fa"] .search-mini::after { right: auto; left: 12px; }
+
+    /* Gallery indicator in table */
+    .gallery-count {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 0.72rem; color: var(--text-dim);
+      background: rgba(58,134,255,0.08);
+      border: 1px solid rgba(58,134,255,0.15);
+      padding: 2px 8px; border-radius: 20px; white-space: nowrap;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .sidebar { transform: translateX(100%); }
+      body[data-lang="en"] .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); }
+      body[data-lang="en"] .sidebar.open { transform: translateX(0); }
+      .main { margin-right: 0; }
+      body[data-lang="en"] .main { margin-left: 0; }
+      .menu-toggle { display: block; }
+      .form-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 768px) {
+      .topbar { padding: 12px 16px; }
+      .content { padding: 20px 16px; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .data-card-header { flex-direction: column; align-items: stretch; }
+      .toolbar { flex-direction: column; align-items: stretch; }
+      .search-mini input { width: 100%; }
+      table { font-size: 0.8rem; }
+      thead th, tbody td { padding: 10px 12px; }
+      .td-desc { display: none; }
+    }
+    @media (max-width: 480px) {
+      .stats-grid { grid-template-columns: 1fr; }
+      .topbar-title { font-size: 0.9rem; }
+      .topbar-btn { padding: 7px 12px; font-size: 0.72rem; }
+      .topbar-btn .btn-label { display: none; }
+      .modal-body { padding: 18px; }
+      .modal-footer { padding: 12px 18px; }
+      .img-preview { width: 70px; height: 70px; }
+    }
+
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--bg-3); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #2a2a3a; }
+  </style>
+</head>
+<body data-lang="fa">
+
+  <!-- LOGIN -->
+  <div id="loginScreen">
+    <div class="login-box">
+      <div class="login-logo">DEAD<span>VERSE</span></div>
+      <div class="login-sub">پنل مدیریت • Admin Panel</div>
+      <label>نام کاربری / Username</label>
+      <input type="text" id="loginUser" placeholder="admin" autocomplete="username" />
+      <label>رمز عبور / Password</label>
+      <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password" />
+      <label>سوال امنیتی / Security Question</label>
+      <div class="captcha-box">
+        <div class="captcha-question" id="captchaQuestion">--</div>
+        <input type="number" id="captchaAnswer" placeholder="پاسخ" autocomplete="off" />
+        <button type="button" class="captcha-refresh" id="captchaRefresh" title="سوال جدید">↻</button>
+      </div>
+      <button class="login-btn" id="loginBtn">ورود به پنل</button>
+      <div class="login-error" id="loginError">نام کاربری، رمز عبور یا پاسخ امنیتی اشتباه است.</div>
+      <div class="login-hint">🔑 نام کاربری: <strong>admin</strong> &nbsp;•&nbsp; رمز: <strong>deadverse</strong></div>
+    </div>
+  </div>
+
+  <!-- LAYOUT -->
+  <div class="admin-layout" id="adminLayout" style="display:none;">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">DEAD<span>VERSE</span></div>
+        <span class="sidebar-badge">ADMIN</span>
+      </div>
+      <nav class="sidebar-nav" id="sidebarNav">
+        <div class="nav-section-label">اصلی</div>
+        <button class="sidebar-link active" data-page="dashboard"><span class="icon">◈</span> داشبورد</button>
+
+        <div class="nav-section-label">محتوا</div>
+        <button class="sidebar-link" data-page="comics"><span class="icon">📚</span> کمیک‌ها <span class="badge" id="badgeComics">0</span></button>
+        <button class="sidebar-link" data-page="articles"><span class="icon">📰</span> مقالات <span class="badge" id="badgeArticles">0</span></button>
+        <button class="sidebar-link" data-page="movies"><span class="icon">🎬</span> فیلم‌ها <span class="badge" id="badgeMovies">0</span></button>
+        <button class="sidebar-link" data-page="characters"><span class="icon">🦸</span> شخصیت‌ها <span class="badge" id="badgeCharacters">0</span></button>
+        <button class="sidebar-link" data-page="team"><span class="icon">👥</span> تیم <span class="badge" id="badgeTeam">0</span></button>
+
+        <div class="nav-section-label">تنظیمات</div>
+        <button class="sidebar-link" data-page="site"><span class="icon">⚙️</span> تنظیمات سایت</button>
+        <button class="sidebar-link" data-page="messages"><span class="icon">✉️</span> پیام‌ها <span class="badge" id="badgeMessages">0</span></button>
+        <button class="sidebar-link" data-page="backup"><span class="icon">💾</span> پشتیبان‌گیری</button>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="admin-user">
+          <div class="admin-avatar">AD</div>
+          <div class="admin-info">
+            <div class="admin-name">مدیر سیستم</div>
+            <div class="admin-role">Administrator</div>
+          </div>
+        </div>
+        <button class="logout-btn" id="logoutBtn"><span>⎋</span> خروج از حساب</button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <div class="topbar">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <button class="menu-toggle" id="menuToggle">☰</button>
+          <div class="topbar-title" id="topbarTitle">داشبورد</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="topbar-btn" id="langToggle"><span>🌐</span> <span class="btn-label" id="langLabel">English</span></button>
+          <button class="topbar-btn primary" onclick="window.open('index.html','_blank')"><span>↗</span> <span class="btn-label">مشاهده سایت</span></button>
+        </div>
+      </div>
+
+      <div class="content">
+
+        <!-- DASHBOARD -->
+        <div class="page active" id="page-dashboard">
+          <div class="page-header">
+            <h1>داشبورد</h1>
+            <p>نمای کلی از محتوای سایت DEADVERSE</p>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-card red">
+              <div class="stat-icon">📚</div>
+              <div class="stat-value" id="statComics">0</div>
+              <div class="stat-label">کمیک‌ها</div>
+            </div>
+            <div class="stat-card blue">
+              <div class="stat-icon">📰</div>
+              <div class="stat-value" id="statArticles">0</div>
+              <div class="stat-label">مقالات</div>
+            </div>
+            <div class="stat-card green">
+              <div class="stat-icon">🎬</div>
+              <div class="stat-value" id="statMovies">0</div>
+              <div class="stat-label">فیلم‌ها</div>
+            </div>
+            <div class="stat-card purple">
+              <div class="stat-icon">🦸</div>
+              <div class="stat-value" id="statCharacters">0</div>
+              <div class="stat-label">شخصیت‌ها</div>
+            </div>
+          </div>
+          <div class="data-card">
+            <div class="data-card-header"><h3>خلاصه وضعیت</h3></div>
+            <div style="padding: 20px;">
+              <p style="color: var(--text-dim); font-size: 0.88rem; line-height: 2;">
+                به پنل مدیریت <strong style="color:#fff;">DEADVERSE</strong> خوش آمدید. از منوی سمت راست می‌توانید تمام بخش‌های سایت را مدیریت کنید.
+                تمام تغییرات به صورت خودکار در حافظه مرورگر ذخیره می‌شوند و در سایت اصلی نمایش داده می‌شوند.
+              </p>
+              <div style="display:flex; gap:10px; margin-top:16px; flex-wrap:wrap;">
+                <button class="btn btn-primary" onclick="switchPage('comics')">مدیریت کمیک‌ها</button>
+                <button class="btn" onclick="switchPage('articles')">مدیریت مقالات</button>
+                <button class="btn" onclick="switchPage('site')">تنظیمات سایت</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COMICS -->
+        <div class="page" id="page-comics">
+          <div class="page-header">
+            <h1>مدیریت کمیک‌ها</h1>
+            <p>افزودن، ویرایش و حذف کتاب‌های کمیک همراه با تصویر کاور</p>
+          </div>
+          <div class="data-card">
+            <div class="data-card-header">
+              <h3>لیست کمیک‌ها <span class="count" id="countComics">0</span></h3>
+              <div class="toolbar">
+                <div class="search-mini"><input type="text" id="searchComics" placeholder="جستجو..." /></div>
+                <button class="btn btn-primary" onclick="openModal('comic')">+ افزودن کمیک</button>
+              </div>
+            </div>
+            <div style="overflow-x:auto;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>کاور</th>
+                    <th>عنوان</th>
+                    <th>ناشر</th>
+                    <th>سال</th>
+                    <th>عملیات</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyComics"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ARTICLES -->
+        <div class="page" id="page-articles">
+          <div class="page-header">
+            <h1>مدیریت مقالات</h1>
+            <p>افزودن، ویرایش و حذف مقالات همراه با ۳ تصویر (کاور، میانی، پایانی)</p>
+          </div>
+          <div class="data-card">
+            <div class="data-card-header">
+              <h3>لیست مقالات <span class="count" id="countArticles">0</span></h3>
+              <div class="toolbar">
+                <div class="search-mini"><input type="text" id="searchArticles" placeholder="جستجو..." /></div>
+                <button class="btn btn-primary" onclick="openModal('article')">+ افزودن مقاله</button>
+              </div>
+            </div>
+            <div style="overflow-x:auto;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>کاور</th>
+                    <th>عنوان</th>
+                    <th>دسته</th>
+                    <th>تصاویر</th>
+                    <th>عملیات</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyArticles"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- MOVIES -->
+        <div class="page" id="page-movies">
+          <div class="page-header">
+            <h1>مدیریت فیلم‌ها</h1>
+            <p>افزودن، ویرایش و حذف فیلم‌ها همراه با پوستر</p>
+          </div>
+          <div class="data-card">
+            <div class="data-card-header">
+              <h3>لیست فیلم‌ها <span class="count" id="countMovies">0</span></h3>
+              <div class="toolbar">
+                <div class="search-mini"><input type="text" id="searchMovies" placeholder="جستجو..." /></div>
+                <button class="btn btn-primary" onclick="openModal('movie')">+ افزودن فیلم</button>
+              </div>
+            </div>
+            <div style="overflow-x:auto;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>پوستر</th>
+                    <th>نام</th>
+                    <th>دنیا</th>
+                    <th>سال</th>
+                    <th>امتیاز</th>
+                    <th>عملیات</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyMovies"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- CHARACTERS -->
+        <div class="page" id="page-characters">
+          <div class="page-header">
+            <h1>مدیریت شخصیت‌ها</h1>
+            <p>افزودن، ویرایش و حذف شخصیت‌ها همراه با تصویر</p>
+          </div>
+          <div class="data-card">
+            <div class="data-card-header">
+              <h3>لیست شخصیت‌ها <span class="count" id="countCharacters">0</span></h3>
+              <div class="toolbar">
+                <div class="search-mini"><input type="text" id="searchCharacters" placeholder="جستجو..." /></div>
+                <button class="btn btn-primary" onclick="openModal('character')">+ افزودن شخصیت</button>
+              </div>
+            </div>
+            <div style="overflow-x:auto;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>تصویر</th>
+                    <th>نام</th>
+                    <th>دنیا</th>
+                    <th>نوع</th>
+                    <th>عملیات</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyCharacters"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TEAM -->
+        <div class="page" id="page-team">
+          <div class="page-header">
+            <h1>مدیریت تیم</h1>
+            <p>افزودن، ویرایش و حذف اعضای تیم همراه با تصویر پروفایل</p>
+          </div>
+          <div class="data-card">
+            <div class="data-card-header">
+              <h3>اعضای تیم <span class="count" id="countTeam">0</span></h3>
+              <div class="toolbar">
+                <button class="btn btn-primary" onclick="openModal('team')">+ افزودن عضو</button>
+              </div>
+            </div>
+            <div style="overflow-x:auto;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>تصویر</th>
+                    <th>نام</th>
+                    <th>نقش</th>
+                    <th>حروف</th>
+                    <th>عملیات</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyTeam"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- SITE SETTINGS -->
+        <div class="page" id="page-site">
+          <div class="page-header">
+            <h1>تنظیمات سایت</h1>
+            <p>ویرایش متن‌های اصلی سایت</p>
+          </div>
+          <div class="data-card">
+            <div class="data-card-header"><h3>متن‌های Hero و About</h3></div>
+            <div style="padding: 24px;">
+              <div class="form-grid">
+                <div class="form-field full">
+                  <label>عنوان Hero (نام سایت)</label>
+                  <input type="text" id="siteHeroTitle" />
+                </div>
+                <div class="form-field full">
+                  <label>زیرعنوان Hero</label>
+                  <input type="text" id="siteHeroSub" />
+                </div>
+                <div class="form-field full">
+                  <label>توضیحات Hero</label>
+                  <textarea id="siteHeroDesc"></textarea>
+                </div>
+                <div class="form-field full">
+                  <label>متن درباره ما (About)</label>
+                  <textarea id="siteAboutText" style="min-height:130px;"></textarea>
+                </div>
+                <div class="form-field">
+                  <label>عنوان دکمه اول Hero</label>
+                  <input type="text" id="siteBtn1" />
+                </div>
+                <div class="form-field">
+                  <label>عنوان دکمه دوم Hero</label>
+                  <input type="text" id="siteBtn2" />
+                </div>
+              </div>
+              <div style="margin-top: 20px; display: flex; gap: 10px;">
+                <button class="btn btn-primary" onclick="saveSiteSettings()">ذخیره تنظیمات</button>
+                <button class="btn" onclick="resetSiteSettings()">بازنشانی</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MESSAGES -->
+        <div class="page" id="page-messages">
+          <div class="page-header">
+            <h1>پیام‌های دریافتی</h1>
+            <p>پیام‌های ارسال شده از فرم تماس</p>
+          </div>
+          <div class="data-card">
+            <div class="data-card-header">
+              <h3>پیام‌ها <span class="count" id="countMessages">0</span></h3>
+              <button class="btn btn-danger" onclick="clearAllMessages()">پاک کردن همه</button>
+            </div>
+            <div style="overflow-x:auto;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>نام</th>
+                    <th>ایمیل</th>
+                    <th>موضوع</th>
+                    <th>پیام</th>
+                    <th>تاریخ</th>
+                    <th>عملیات</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyMessages"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- BACKUP -->
+        <div class="page" id="page-backup">
+          <div class="page-header">
+            <h1>پشتیبان‌گیری و بازنشانی</h1>
+            <p>مدیریت داده‌های ذخیره شده</p>
+          </div>
+          <div class="data-card">
+            <div class="data-card-header"><h3>عملیات داده</h3></div>
+            <div style="padding: 24px;">
+              <p style="color: var(--text-dim); font-size: 0.88rem; margin-bottom: 20px;">
+                تمام داده‌ها در حافظه مرورگر (localStorage) ذخیره می‌شوند. تصاویر به صورت Base64 ذخیره می‌شوند و ممکن است حجم قابل توجهی داشته باشند.
+              </p>
+              <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn btn-primary" onclick="exportData()">📥 دانلود پشتیبان (JSON)</button>
+                <button class="btn" onclick="document.getElementById('importFile').click()">📤 بارگذاری پشتیبان</button>
+                <button class="btn btn-danger" onclick="resetAllData()">🗑 بازنشانی همه داده‌ها</button>
+                <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importData(event)" />
+              </div>
+              <div style="margin-top: 24px; padding: 16px; background: var(--bg-3); border-radius: 10px; border: 1px solid var(--border);">
+                <div style="font-size: 0.82rem; color: var(--text-dim);">
+                  <div style="margin-bottom: 8px;"><strong style="color:#fff;">وضعیت ذخیره‌سازی:</strong></div>
+                  <div id="storageInfo"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalTitle">افزودن</h3>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid" id="modalForm"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal()">انصراف</button>
+        <button class="btn btn-primary" id="modalSaveBtn" onclick="saveModal()">ذخیره</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    // ============================================================
+    // STORAGE KEYS
+    // ============================================================
+    const KEYS = {
+      comics: 'dv_comics',
+      articles: 'dv_articles',
+      movies: 'dv_movies',
+      characters: 'dv_characters',
+      team: 'dv_team',
+      messages: 'dv_messages',
+      site: 'dv_site'
+    };
+
+    // ============================================================
+    // DEFAULT DATA (with image fields as base64 or empty)
+    // ============================================================
+    const defaultComics = [
+      { id: 'c1', title_fa: "بازگشت شوالیه تاریکی", title_en: "The Dark Knight Returns", publisher: "DC", year: 1986, desc_fa: "داستان افسانه‌ای فرانک میلر درباره بازگشت بتمن سالخورده برای نجات گاتهام.", desc_en: "Frank Miller's legendary tale of an aging Batman returning to save Gotham.", image: "" },
+      { id: 'c2', title_fa: "دستکش بی‌نهایت", title_en: "Infinity Gauntlet", publisher: "Marvel", year: 1991, desc_fa: "تانوس دستکش بی‌نهایت را به دست می‌گیرد و قهرمانان جهان برای متوقف کردن او متحد می‌شوند.", desc_en: "Thanos wields the Infinity Gauntlet and the universe's heroes unite to stop him.", image: "" },
+      { id: 'c3', title_fa: "واچمن", title_en: "Watchmen", publisher: "DC", year: 1986, desc_fa: "اثری که ژانر ابرقهرمانی را از هم می‌پاشد و کمیک را برای همیشه تغییر می‌دهد.", desc_en: "A deconstruction of the superhero genre that redefined comics forever.", image: "" },
+      { id: 'c4', title_fa: "جنگ داخلی", title_en: "Civil War", publisher: "Marvel", year: 2006, desc_fa: "قهرمانان بر سر ثبت‌نام با هم درگیر می‌شوند و کاپیتان آمریکا و آیرون من انتقام‌جویان را تقسیم می‌کنند.", desc_en: "Heroes clash over registration as Captain America and Iron Man split the Avengers.", image: "" },
+      { id: 'c5', title_fa: "بتمن: سال اول", title_en: "Batman: Year One", publisher: "DC", year: 1987, desc_fa: "داستان قطعی خاستگاه بتمن و روزهای اولیه جیم گوردون در گاتهام.", desc_en: "The definitive origin story of Batman and Jim Gordon's early days in Gotham.", image: "" },
+      { id: 'c6', title_fa: "آخرین شکار کراون", title_en: "Kraven's Last Hunt", publisher: "Marvel", year: 1987, desc_fa: "داستانی تکان‌دهنده از اسپایدرمن که کراون می‌خواهد خود را شکارچی نهایی ثابت کند.", desc_en: "A haunting Spider-Man story where Kraven seeks to prove himself as the ultimate hunter.", image: "" }
+    ];
+
+    const defaultArticles = [
+      { id: 'a1', title_fa: "فاز ۶ مارول: آنچه می‌دانیم", title_en: "Marvel's Phase 6: What We Know", cat: "marvel", date_fa: "ژانویه ۲۰۲۶", date_en: "Jan 2026", desc_fa: "ساگای مولتی‌ورس در حال ساختن چیزی عظیم است. اینجا هر چیزی که تاکنون تأیید شده را می‌بینید.", desc_en: "The Multiverse Saga is building toward something massive. Here's everything confirmed so far.", coverImage: "", midImage: "", lateImage: "" },
+      { id: 'a2', title_fa: "دنیای جدید دی‌سی: شروعی تازه", title_en: "The New DCU: A Fresh Start", cat: "dc", date_fa: "فوریه ۲۰۲۶", date_en: "Feb 2026", desc_fa: "دنیای دی‌سی جیمز گان سرانجام شکل می‌گیرد — و امیدوارکننده به نظر می‌رسد.", desc_en: "James Gunn's DC Universe is finally taking shape — and it looks promising.", coverImage: "", midImage: "", lateImage: "" },
+      { id: 'a3', title_fa: "نقد ددپول و ولورین", title_en: "Deadpool & Wolverine Review", cat: "movies", date_fa: "مارس ۲۰۲۶", date_en: "Mar 2026", desc_fa: "سفری آشفته، خنده‌دار و به‌طور شگفت‌انگیزی صمیمانه در مولتی‌ورس.", desc_en: "A chaotic, hilarious, and surprisingly heartfelt ride through the multiverse.", coverImage: "", midImage: "", lateImage: "" },
+      { id: 'a4', title_fa: "۱۰ شرور برتر تاریخ", title_en: "Top 10 Villains of All Time", cat: "characters", date_fa: "آوریل ۲۰۲۶", date_en: "Apr 2026", desc_fa: "از تانوس تا جوکر، ما نمادین‌ترین شخصیت‌های شرور کمیک‌ها را رتبه‌بندی می‌کنیم.", desc_en: "From Thanos to Joker, we rank the most iconic antagonists in comics.", coverImage: "", midImage: "", lateImage: "" },
+      { id: 'a5', title_fa: "بهترین کمیک‌های ۲۰۲۵", title_en: "The Best Comics of 2025", cat: "comics", date_fa: "مه ۲۰۲۶", date_en: "May 2026", desc_fa: "انتخاب‌های ما برای نوآورانه‌ترین و زیباترین کمیک‌های سال.", desc_en: "Our picks for the most groundbreaking and beautifully crafted comics of the year.", coverImage: "", midImage: "", lateImage: "" },
+      { id: 'a6', title_fa: "خستگی ابرقهرمانی؟ اصلاً", title_en: "Superhero Fatigue? Not So Fast", cat: "news", date_fa: "ژوئن ۲۰۲۶", date_en: "Jun 2026", desc_fa: "با وجود شایعات، این ژانر همچنان تکامل می‌یابد و مخاطبان سراسر جهان را مجذوب می‌کند.", desc_en: "Despite rumors, the genre continues to evolve and captivate audiences worldwide.", coverImage: "", midImage: "", lateImage: "" },
+      { id: 'a7', title_fa: "تکامل اسپایدرمن", title_en: "The Evolution of Spider-Man", cat: "marvel", date_fa: "ژوئیه ۲۰۲۶", date_en: "Jul 2026", desc_fa: "از قهرمان نوجوان تا انتقام‌جوی کارکشته — سفر پیتر پارکر را دنبال کنید.", desc_en: "From teenage hero to seasoned Avenger — tracking Peter Parker's journey.", coverImage: "", midImage: "", lateImage: "" },
+      { id: 'a8', title_fa: "آینده سینمایی واندر وومن", title_en: "Wonder Woman's Cinematic Future", cat: "dc", date_fa: "اوت ۲۰۲۶", date_en: "Aug 2026", desc_fa: "آینده سینمایی دایانا پرینس در دنیای جدید دی‌سی چیست؟ ما بررسی می‌کنیم.", desc_en: "What's next for Diana Prince in the new DC Universe? We break it down.", coverImage: "", midImage: "", lateImage: "" }
+    ];
+
+    const defaultMovies = [
+      { id: 'm1', name_fa: "انتقام‌جویان: پایان بازی", name_en: "Avengers: Endgame", year: 2019, rating: 8.4, universe: "Marvel", desc_fa: "پایان حماسی ساگای بی‌نهایت.", desc_en: "The epic conclusion to the Infinity Saga.", image: "" },
+      { id: 'm2', name_fa: "شوالیه تاریکی", name_en: "The Dark Knight", year: 2008, rating: 9.0, universe: "DC", desc_fa: "جوکر هیث لجر ژانر ابرقهرمانی را بازتعریف می‌کند.", desc_en: "Heath Ledger's Joker redefines the superhero genre.", image: "" },
+      { id: 'm3', name_fa: "مرد عنکبوتی: راهی به خانه نیست", name_en: "Spider-Man: No Way Home", year: 2021, rating: 8.2, universe: "Marvel", desc_fa: "هرج‌ومرج مولتی‌ورسی سه مرد عنکبوتی را کنار هم می‌آورد.", desc_en: "Multiversal chaos brings three Spider-Men together.", image: "" },
+      { id: 'm4', name_fa: "بتمن", name_en: "The Batman", year: 2022, rating: 7.8, universe: "DC", desc_fa: "روایتی نوآر و کارآگاهی از شوالیه تاریکی.", desc_en: "A noir-driven, detective-focused take on the Dark Knight.", image: "" },
+      { id: 'm5', name_fa: "نگهبانان کهکشان جلد ۳", name_en: "Guardians of the Galaxy Vol. 3", year: 2023, rating: 7.9, universe: "Marvel", desc_fa: "خداحافظی احساسی با تیم کیهانی محبوب.", desc_en: "An emotional farewell to the beloved cosmic team.", image: "" },
+      { id: 'm6', name_fa: "جوکر", name_en: "Joker", year: 2019, rating: 8.4, universe: "DC", desc_fa: "داستان خاستگاه تاریک و شخصیت‌محور بی‌مانند.", desc_en: "A dark, character-driven origin story unlike any other.", image: "" },
+      { id: 'm7', name_fa: "پلنگ سیاه", name_en: "Black Panther", year: 2018, rating: 7.3, universe: "Marvel", desc_fa: "نقطه عطف فرهنگی و ماجراجویی هیجان‌انگیز ابرقهرمانی.", desc_en: "A cultural milestone and a thrilling superhero adventure.", image: "" },
+      { id: 'm8', name_fa: "واندر وومن", name_en: "Wonder Woman", year: 2017, rating: 7.4, universe: "DC", desc_fa: "داستان خاستگاه دیانا امید و قدرت را به DCEU می‌آورد.", desc_en: "Diana's origin story brings hope and power to the DCEU.", image: "" }
+    ];
+
+    const defaultCharacters = [
+      { id: 'ch1', name_fa: "اسپایدرمن", name_en: "Spider-Man", universe: "Marvel", type: "hero", desc_fa: "قهرمان محله با قدرت‌های عنکبوتی.", desc_en: "Friendly neighborhood hero with spider-powers.", image: "" },
+      { id: 'ch2', name_fa: "بتمن", name_en: "Batman", universe: "DC", type: "hero", desc_fa: "شوالیه تاریکی گاتهام، کارآگاه استاد.", desc_en: "The Dark Knight of Gotham, master detective.", image: "" },
+      { id: 'ch3', name_fa: "آیرون من", name_en: "Iron Man", universe: "Marvel", type: "hero", desc_fa: "نابغه میلیاردر در زره پوش پیشرفته.", desc_en: "Genius billionaire in a high-tech suit of armor.", image: "" },
+      { id: 'ch4', name_fa: "واندر وومن", name_en: "Wonder Woman", universe: "DC", type: "hero", desc_fa: "شاهزاده جنگجوی آمازونی با قدرت الهی.", desc_en: "Amazonian warrior princess with divine strength.", image: "" },
+      { id: 'ch5', name_fa: "تانوس", name_en: "Thanos", universe: "Marvel", type: "villain", desc_fa: "تایتان دیوانه که تعادل را از طریق نابودی می‌جوید.", desc_en: "The Mad Titan seeking balance through destruction.", image: "" },
+      { id: 'ch6', name_fa: "جوکر", name_en: "Joker", universe: "DC", type: "villain", desc_fa: "شاهزاده دلقک جنایت — تجسم هرج‌ومرج.", desc_en: "The Clown Prince of Crime — chaos incarnate.", image: "" },
+      { id: 'ch7', name_fa: "کاپیتان آمریکا", name_en: "Captain America", universe: "Marvel", type: "hero", desc_fa: "انتقام‌جوی اول، نماد امید و عدالت.", desc_en: "The First Avenger, a symbol of hope and justice.", image: "" },
+      { id: 'ch8', name_fa: "سوپرمن", name_en: "Superman", universe: "DC", type: "hero", desc_fa: "آخرین پسر کریپتون، بزرگ‌ترین محافظ زمین.", desc_en: "The Last Son of Krypton, Earth's greatest protector.", image: "" }
+    ];
+
+    const defaultTeam = [
+      { id: 't1', name_fa: "الکس رید", name_en: "Alex Reed", role_fa: "سردبیر", role_en: "Editor-in-Chief", desc_fa: "طرفدار دیرینه کمیک و علاقه‌مند به داستان‌سرایی.", desc_en: "Lifelong comic fan and storytelling enthusiast.", initials: "AR", image: "" },
+      { id: 't2', name_fa: "مایا چن", name_en: "Maya Chen", role_fa: "نویسنده ارشد", role_en: "Senior Writer", desc_fa: "مارول و دی‌سی را با بینش عمیق صنعتی پوشش می‌دهد.", desc_en: "Covers Marvel and DC with deep industry insight.", initials: "MC", image: "" },
+      { id: 't3', name_fa: "جردن بلیک", name_en: "Jordan Blake", role_fa: "منتقد فیلم", role_en: "Film Critic", desc_fa: "از سال ۲۰۰۸ هر فیلم ابرقهرمانی را نقد کرده است.", desc_en: "Reviews every superhero movie since 2008.", initials: "JB", image: "" },
+      { id: 't4', name_fa: "سام تورس", name_en: "Sam Torres", role_fa: "مدیر جامعه", role_en: "Community Manager", desc_fa: "جامعه DEADVERSE را در پلتفرم‌های مختلف به هم متصل می‌کند.", desc_en: "Connects the Deadverse community across platforms.", initials: "ST", image: "" },
+      { id: 't5', name_fa: "رایلی کوین", name_en: "Riley Quinn", role_fa: "مدیر خلاق", role_en: "Creative Director", desc_fa: "هویت بصری DEADVERSE را شکل می‌دهد.", desc_en: "Shapes the visual identity of the Deadverse.", initials: "RQ", image: "" }
+    ];
+
+    const defaultSite = {
+      heroTitle: "DEADVERSE",
+      heroSub_fa: "وارد دنیای ابرقهرمانان شوید",
+      heroSub_en: "ENTER THE UNIVERSE OF HEROES",
+      heroDesc_fa: "به دنیای حماسی مارول و دی‌سی شیرجه بزنید — کمیک‌ها، فیلم‌ها، شخصیت‌ها و داستان‌هایی که نسل‌ها را تعریف کرده‌اند.",
+      heroDesc_en: "Dive into the epic worlds of Marvel & DC — comics, movies, characters, and the stories that define a generation of heroes.",
+      aboutText_fa: "DEADVERSE مقصدی برتر برای طرفداران دنیای مارول و دی‌سی است. ما آخرین اخبار کمیک‌ها، فیلم‌ها، شخصیت‌ها و داستان‌هایی که نسل‌ها ابرقهرمان را تعریف کرده‌اند به شما می‌رسانیم. تیم ما متعهد است تحلیل‌های عمیق، اخبار فوری و جامعه‌ای که هر طرفداری در آن جای دارد را ارائه دهد. به دنیا خوش آمدید.",
+      aboutText_en: "DEADVERSE is a premier destination for fans of the Marvel and DC universes. We bring you the latest on comics, movies, characters, and the stories that define generations of heroes. Our team is dedicated to delivering in-depth analysis, breaking news, and a community where every fan belongs. Welcome to the universe.",
+      btn1_fa: "کاوش کمیک‌ها", btn1_en: "Explore Comics",
+      btn2_fa: "مشاهده شخصیت‌ها", btn2_en: "View Characters"
+    };
+
+    // ============================================================
+    // STATE
+    // ============================================================
+    let currentLang = 'fa';
+    let data = {};
+    let modalState = { type: null, id: null };
+    let tempImages = {}; // temporary image data for modal
+
+    // ============================================================
+    // STORAGE HELPERS
+    // ============================================================
+    function loadData() {
+      data.comics = loadKey(KEYS.comics, defaultComics);
+      data.articles = loadKey(KEYS.articles, defaultArticles);
+      data.movies = loadKey(KEYS.movies, defaultMovies);
+      data.characters = loadKey(KEYS.characters, defaultCharacters);
+      data.team = loadKey(KEYS.team, defaultTeam);
+      data.messages = loadKey(KEYS.messages, []);
+      data.site = loadKey(KEYS.site, defaultSite);
+    }
+    function loadKey(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return JSON.parse(JSON.stringify(fallback));
+        return JSON.parse(raw);
+      } catch (e) { return JSON.parse(JSON.stringify(fallback)); }
+    }
+    function saveKey(key, value) {
+      try { localStorage.setItem(key, JSON.stringify(value)); return true; }
+      catch (e) {
+        if (e.name === 'QuotaExceededError' || e.code === 22) {
+          toast('حافظه پر شده است. تصاویر حجیم را حذف کنید یا داده‌ها را پشتیبان بگیرید.', 'error');
+        } else {
+          toast('خطا در ذخیره‌سازی', 'error');
+        }
+        return false;
+      }
+    }
+    function saveAll() {
+      saveKey(KEYS.comics, data.comics);
+      saveKey(KEYS.articles, data.articles);
+      saveKey(KEYS.movies, data.movies);
+      saveKey(KEYS.characters, data.characters);
+      saveKey(KEYS.team, data.team);
+      saveKey(KEYS.messages, data.messages);
+      saveKey(KEYS.site, data.site);
+    }
+
+    // ============================================================
+    // UTILITIES
+    // ============================================================
+    function uid(prefix) {
+      return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    }
+    function esc(str) {
+      if (str === undefined || str === null) return '';
+      return String(str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+    function toast(msg, type) {
+      const container = document.getElementById('toastContainer');
+      const el = document.createElement('div');
+      el.className = 'toast ' + (type || 'success');
+      el.innerHTML = (type === 'error' ? '⚠ ' : '✓ ') + esc(msg);
+      container.appendChild(el);
+      setTimeout(() => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(10px)';
+        el.style.transition = 'all 0.3s';
+        setTimeout(() => el.remove(), 300);
+      }, 2800);
+    }
+
+    // ============================================================
+    // CAPTCHA (Random Math)
+    // ============================================================
+    let captchaResult = 0;
+    let captchaOp = '+';
+
+    function generateCaptcha() {
+      const isAddition = Math.random() > 0.5;
+      if (isAddition) {
+        const a = Math.floor(Math.random() * 20) + 1;
+        const b = Math.floor(Math.random() * 20) + 1;
+        captchaResult = a + b;
+        captchaOp = '+';
+        document.getElementById('captchaQuestion').textContent = a + ' + ' + b + ' = ?';
+      } else {
+        // Subtraction: ensure result positive
+        let a = Math.floor(Math.random() * 20) + 10;
+        let b = Math.floor(Math.random() * 10) + 1;
+        if (b > a) { const t = a; a = b; b = t; }
+        captchaResult = a - b;
+        captchaOp = '−';
+        document.getElementById('captchaQuestion').textContent = a + ' − ' + b + ' = ?';
+      }
+      document.getElementById('captchaAnswer').value = '';
+    }
+
+    // ============================================================
+    // LOGIN
+    // ============================================================
+    const AUTH_KEY = 'dv_admin_auth';
+    const CREDS = { user: 'admin', pass: 'deadverse' };
+
+    function checkAuth() {
+      try { return localStorage.getItem(AUTH_KEY) === '1'; }
+      catch (e) { return false; }
+    }
+    function doLogin() {
+      const u = document.getElementById('loginUser').value.trim();
+      const p = document.getElementById('loginPass').value;
+      const ans = document.getElementById('captchaAnswer').value.trim();
+      const err = document.getElementById('loginError');
+      const captchaOk = ans !== '' && Number(ans) === captchaResult;
+      if (u === CREDS.user && p === CREDS.pass && captchaOk) {
+        try { localStorage.setItem(AUTH_KEY, '1'); } catch (e) {}
+        showAdmin();
+      } else {
+        err.classList.add('show');
+        setTimeout(() => err.classList.remove('show'), 2800);
+        if (!captchaOk) generateCaptcha();
+      }
+    }
+    function showAdmin() {
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('adminLayout').style.display = 'flex';
+      loadData();
+      renderAll();
+      updateCounts();
+      updateStorageInfo();
+    }
+    function logout() {
+      try { localStorage.removeItem(AUTH_KEY); } catch (e) {}
+      document.getElementById('adminLayout').style.display = 'none';
+      document.getElementById('loginScreen').classList.remove('hidden');
+      document.getElementById('loginUser').value = '';
+      document.getElementById('loginPass').value = '';
+      generateCaptcha();
+    }
+
+    // ============================================================
+    // NAVIGATION
+    // ============================================================
+    const pageTitles = {
+      dashboard: 'داشبورد', comics: 'مدیریت کمیک‌ها', articles: 'مدیریت مقالات',
+      movies: 'مدیریت فیلم‌ها', characters: 'مدیریت شخصیت‌ها', team: 'مدیریت تیم',
+      site: 'تنظیمات سایت', messages: 'پیام‌ها', backup: 'پشتیبان‌گیری'
+    };
+    function switchPage(page) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById('page-' + page).classList.add('active');
+      document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+      const link = document.querySelector(`.sidebar-link[data-page="${page}"]`);
+      if (link) link.classList.add('active');
+      document.getElementById('topbarTitle').textContent = pageTitles[page] || '';
+      document.getElementById('sidebar').classList.remove('open');
+      if (page === 'messages') renderMessages();
+      if (page === 'backup') updateStorageInfo();
+      if (page === 'site') renderSiteSettings();
+    }
+
+    // ============================================================
+    // RENDERERS
+    // ============================================================
+    function renderAll() {
+      renderComics();
+      renderArticles();
+      renderMovies();
+      renderCharacters();
+      renderTeam();
+      renderMessages();
+      renderSiteSettings();
+    }
+
+    function imgCell(src, name) {
+      if (src) return `<img class="thumb" src="${src}" alt="${esc(name)}" />`;
+      return `<div class="thumb-empty">—</div>`;
+    }
+
+    function renderComics(filter) {
+      const tbody = document.getElementById('tbodyComics');
+      let list = data.comics;
+      if (filter) {
+        const f = filter.toLowerCase();
+        list = list.filter(c =>
+          (c.title_fa || '').toLowerCase().includes(f) ||
+          (c.title_en || '').toLowerCase().includes(f) ||
+          (c.publisher || '').toLowerCase().includes(f)
+        );
+      }
+      if (!list.length) {
+        tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="icon">📚</div><p>کمیکی یافت نشد</p></div></td></tr>`;
+        return;
+      }
+      tbody.innerHTML = list.map(c => `
+        <tr>
+          <td>${imgCell(c.image, c.title_fa)}</td>
+          <td><div class="td-title">${esc(c.title_fa)}</div><div style="font-size:0.72rem;color:var(--text-dim);">${esc(c.title_en)}</div></td>
+          <td><span class="tag ${c.publisher === 'Marvel' ? 'tag-marvel' : 'tag-dc'}">${esc(c.publisher)}</span></td>
+          <td>${esc(c.year)}</td>
+          <td><div class="actions-cell">
+            <button class="icon-btn" onclick="editItem('comic','${c.id}')" title="ویرایش">✎</button>
+            <button class="icon-btn danger" onclick="deleteItem('comic','${c.id}')" title="حذف">🗑</button>
+          </div></td>
+        </tr>
+      `).join('');
+    }
+
+    function renderArticles(filter) {
+      const tbody = document.getElementById('tbodyArticles');
+      let list = data.articles;
+      if (filter) {
+        const f = filter.toLowerCase();
+        list = list.filter(a =>
+          (a.title_fa || '').toLowerCase().includes(f) ||
+          (a.title_en || '').toLowerCase().includes(f) ||
+          (a.cat || '').toLowerCase().includes(f)
+        );
+      }
+      if (!list.length) {
+        tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="icon">📰</div><p>مقاله‌ای یافت نشد</p></div></td></tr>`;
+        return;
+      }
+      const catLabels = { marvel: 'مارول', dc: 'دی‌سی', movies: 'فیلم‌ها', characters: 'شخصیت‌ها', comics: 'کمیک‌ها', news: 'اخبار' };
+      tbody.innerHTML = list.map(a => {
+        const imgCount = [a.coverImage, a.midImage, a.lateImage].filter(Boolean).length;
+        return `
+        <tr>
+          <td>${imgCell(a.coverImage, a.title_fa)}</td>
+          <td><div class="td-title">${esc(a.title_fa)}</div><div style="font-size:0.72rem;color:var(--text-dim);">${esc(a.title_en)}</div></td>
+          <td><span class="tag tag-neutral">${esc(catLabels[a.cat] || a.cat)}</span></td>
+          <td><span class="gallery-count">🖼 ${imgCount} / 3</span></td>
+          <td><div class="actions-cell">
+            <button class="icon-btn" onclick="editItem('article','${a.id}')" title="ویرایش">✎</button>
+            <button class="icon-btn danger" onclick="deleteItem('article','${a.id}')" title="حذف">🗑</button>
+          </div></td>
+        </tr>
+      `}).join('');
+    }
+
+    function renderMovies(filter) {
+      const tbody = document.getElementById('tbodyMovies');
+      let list = data.movies;
+      if (filter) {
+        const f = filter.toLowerCase();
+        list = list.filter(m =>
+          (m.name_fa || '').toLowerCase().includes(f) ||
+          (m.name_en || '').toLowerCase().includes(f) ||
+          (m.universe || '').toLowerCase().includes(f)
+        );
+      }
+      if (!list.length) {
+        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="icon">🎬</div><p>فیلمی یافت نشد</p></div></td></tr>`;
+        return;
+      }
+      tbody.innerHTML = list.map(m => `
+        <tr>
+          <td>${imgCell(m.image, m.name_fa)}</td>
+          <td><div class="td-title">${esc(m.name_fa)}</div><div style="font-size:0.72rem;color:var(--text-dim);">${esc(m.name_en)}</div></td>
+          <td><span class="tag ${m.universe === 'Marvel' ? 'tag-marvel' : 'tag-dc'}">${esc(m.universe)}</span></td>
+          <td>${esc(m.year)}</td>
+          <td><span style="color:#f5c518;font-weight:700;">★ ${esc(m.rating)}</span></td>
+          <td><div class="actions-cell">
+            <button class="icon-btn" onclick="editItem('movie','${m.id}')" title="ویرایش">✎</button>
+            <button class="icon-btn danger" onclick="deleteItem('movie','${m.id}')" title="حذف">🗑</button>
+          </div></td>
+        </tr>
+      `).join('');
+    }
+
+    function renderCharacters(filter) {
+      const tbody = document.getElementById('tbodyCharacters');
+      let list = data.characters;
+      if (filter) {
+        const f = filter.toLowerCase();
+        list = list.filter(c =>
+          (c.name_fa || '').toLowerCase().includes(f) ||
+          (c.name_en || '').toLowerCase().includes(f) ||
+          (c.universe || '').toLowerCase().includes(f)
+        );
+      }
+      if (!list.length) {
+        tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="icon">🦸</div><p>شخصیتی یافت نشد</p></div></td></tr>`;
+        return;
+      }
+      tbody.innerHTML = list.map(c => `
+        <tr>
+          <td>${imgCell(c.image, c.name_fa)}</td>
+          <td><div class="td-title">${esc(c.name_fa)}</div><div style="font-size:0.72rem;color:var(--text-dim);">${esc(c.name_en)}</div></td>
+          <td><span class="tag ${c.universe === 'Marvel' ? 'tag-marvel' : 'tag-dc'}">${esc(c.universe)}</span></td>
+          <td><span class="tag ${c.type === 'hero' ? 'tag-green' : 'tag-marvel'}">${c.type === 'hero' ? 'قهرمان' : 'شرور'}</span></td>
+          <td><div class="actions-cell">
+            <button class="icon-btn" onclick="editItem('character','${c.id}')" title="ویرایش">✎</button>
+            <button class="icon-btn danger" onclick="deleteItem('character','${c.id}')" title="حذف">🗑</button>
+          </div></td>
+        </tr>
+      `).join('');
+    }
+
+    function renderTeam() {
+      const tbody = document.getElementById('tbodyTeam');
+      if (!data.team.length) {
+        tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="icon">👥</div><p>عضوی یافت نشد</p></div></td></tr>`;
+        return;
+      }
+      tbody.innerHTML = data.team.map(t => `
+        <tr>
+          <td>${imgCell(t.image, t.name_fa)}</td>
+          <td><div class="td-title">${esc(t.name_fa)}</div><div style="font-size:0.72rem;color:var(--text-dim);">${esc(t.name_en)}</div></td>
+          <td style="color:var(--text-dim);font-size:0.82rem;">${esc(t.role_fa)}</td>
+          <td><span class="tag tag-neutral">${esc(t.initials)}</span></td>
+          <td><div class="actions-cell">
+            <button class="icon-btn" onclick="editItem('team','${t.id}')" title="ویرایش">✎</button>
+            <button class="icon-btn danger" onclick="deleteItem('team','${t.id}')" title="حذف">🗑</button>
+          </div></td>
+        </tr>
+      `).join('');
+    }
+
+    function renderMessages() {
+      const tbody = document.getElementById('tbodyMessages');
+      if (!data.messages.length) {
+        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="icon">✉️</div><p>پیامی وجود ندارد</p></div></td></tr>`;
+        return;
+      }
+      tbody.innerHTML = data.messages.map(m => `
+        <tr>
+          <td class="td-title">${esc(m.name)}</td>
+          <td style="font-size:0.8rem;color:var(--text-dim);">${esc(m.email)}</td>
+          <td class="td-title" style="max-width:160px;">${esc(m.subject)}</td>
+          <td class="td-desc">${esc(m.message)}</td>
+          <td style="font-size:0.75rem;color:var(--text-dim);white-space:nowrap;">${esc(m.date)}</td>
+          <td><button class="icon-btn danger" onclick="deleteMessage('${m.id}')" title="حذف">🗑</button></td>
+        </tr>
+      `).join('');
+    }
+
+    function renderSiteSettings() {
+      document.getElementById('siteHeroTitle').value = data.site.heroTitle || '';
+      document.getElementById('siteHeroSub').value = currentLang === 'fa' ? (data.site.heroSub_fa || '') : (data.site.heroSub_en || '');
+      document.getElementById('siteHeroDesc').value = currentLang === 'fa' ? (data.site.heroDesc_fa || '') : (data.site.heroDesc_en || '');
+      document.getElementById('siteAboutText').value = currentLang === 'fa' ? (data.site.aboutText_fa || '') : (data.site.aboutText_en || '');
+      document.getElementById('siteBtn1').value = currentLang === 'fa' ? (data.site.btn1_fa || '') : (data.site.btn1_en || '');
+      document.getElementById('siteBtn2').value = currentLang === 'fa' ? (data.site.btn2_fa || '') : (data.site.btn2_en || '');
+    }
+
+    function updateCounts() {
+      document.getElementById('statComics').textContent = data.comics.length;
+      document.getElementById('statArticles').textContent = data.articles.length;
+      document.getElementById('statMovies').textContent = data.movies.length;
+      document.getElementById('statCharacters').textContent = data.characters.length;
+      document.getElementById('badgeComics').textContent = data.comics.length;
+      document.getElementById('badgeArticles').textContent = data.articles.length;
+      document.getElementById('badgeMovies').textContent = data.movies.length;
+      document.getElementById('badgeCharacters').textContent = data.characters.length;
+      document.getElementById('badgeTeam').textContent = data.team.length;
+      document.getElementById('badgeMessages').textContent = data.messages.length;
+      document.getElementById('countComics').textContent = data.comics.length;
+      document.getElementById('countArticles').textContent = data.articles.length;
+      document.getElementById('countMovies').textContent = data.movies.length;
+      document.getElementById('countCharacters').textContent = data.characters.length;
+      document.getElementById('countTeam').textContent = data.team.length;
+      document.getElementById('countMessages').textContent = data.messages.length;
+    }
+
+    // ============================================================
+    // MODAL CONFIG (with image fields)
+    // ============================================================
+    const modalConfig = {
+      comic: {
+        titleNew: 'افزودن کمیک', titleEdit: 'ویرایش کمیک',
+        imageFields: [{ key: 'image', label: 'تصویر کاور' }],
+        fields: [
+          { key: 'title_fa', label: 'عنوان (فارسی)', type: 'text', req: true, full: true },
+          { key: 'title_en', label: 'عنوان (انگلیسی)', type: 'text', req: true, full: true },
+          { key: 'publisher', label: 'ناشر', type: 'select', options: ['Marvel', 'DC'], req: true },
+          { key: 'year', label: 'سال انتشار', type: 'number', req: true },
+          { key: 'desc_fa', label: 'توضیحات (فارسی)', type: 'textarea', full: true },
+          { key: 'desc_en', label: 'توضیحات (انگلیسی)', type: 'textarea', full: true }
+        ]
+      },
+      article: {
+        titleNew: 'افزودن مقاله', titleEdit: 'ویرایش مقاله',
+        imageFields: [
+          { key: 'coverImage', label: 'تصویر کاور' },
+          { key: 'midImage', label: 'تصویر وسط مقاله' },
+          { key: 'lateImage', label: 'تصویر کمی بعد از وسط' }
+        ],
+        fields: [
+          { key: 'title_fa', label: 'عنوان (فارسی)', type: 'text', req: true, full: true },
+          { key: 'title_en', label: 'عنوان (انگلیسی)', type: 'text', req: true, full: true },
+          { key: 'cat', label: 'دسته‌بندی', type: 'select', options: [['marvel','مارول'],['dc','دی‌سی'],['movies','فیلم‌ها'],['characters','شخصیت‌ها'],['comics','کمیک‌ها'],['news','اخبار']], req: true },
+          { key: 'date_fa', label: 'تاریخ (فارسی)', type: 'text', req: true },
+          { key: 'desc_fa', label: 'توضیحات (فارسی)', type: 'textarea', full: true },
+          { key: 'desc_en', label: 'توضیحات (انگلیسی)', type: 'textarea', full: true }
+        ]
+      },
+      movie: {
+        titleNew: 'افزودن فیلم', titleEdit: 'ویرایش فیلم',
+        imageFields: [{ key: 'image', label: 'پوستر فیلم' }],
+        fields: [
+          { key: 'name_fa', label: 'نام (فارسی)', type: 'text', req: true, full: true },
+          { key: 'name_en', label: 'نام (انگلیسی)', type: 'text', req: true, full: true },
+          { key: 'universe', label: 'دنیا', type: 'select', options: ['Marvel', 'DC'], req: true },
+          { key: 'year', label: 'سال', type: 'number', req: true },
+          { key: 'rating', label: 'امتیاز (۱-۱۰)', type: 'number', req: true },
+          { key: 'desc_fa', label: 'توضیحات (فارسی)', type: 'textarea', full: true },
+          { key: 'desc_en', label: 'توضیحات (انگلیسی)', type: 'textarea', full: true }
+        ]
+      },
+      character: {
+        titleNew: 'افزودن شخصیت', titleEdit: 'ویرایش شخصیت',
+        imageFields: [{ key: 'image', label: 'تصویر شخصیت' }],
+        fields: [
+          { key: 'name_fa', label: 'نام (فارسی)', type: 'text', req: true, full: true },
+          { key: 'name_en', label: 'نام (انگلیسی)', type: 'text', req: true, full: true },
+          { key: 'universe', label: 'دنیا', type: 'select', options: ['Marvel', 'DC'], req: true },
+          { key: 'type', label: 'نوع', type: 'select', options: [['hero','قهرمان'],['villain','شرور']], req: true },
+          { key: 'desc_fa', label: 'توضیحات (فارسی)', type: 'textarea', full: true },
+          { key: 'desc_en', label: 'توضیحات (انگلیسی)', type: 'textarea', full: true }
+        ]
+      },
+      team: {
+        titleNew: 'افزودن عضو تیم', titleEdit: 'ویرایش عضو تیم',
+        imageFields: [{ key: 'image', label: 'تصویر پروفایل' }],
+        fields: [
+          { key: 'name_fa', label: 'نام (فارسی)', type: 'text', req: true, full: true },
+          { key: 'name_en', label: 'نام (انگلیسی)', type: 'text', req: true, full: true },
+          { key: 'role_fa', label: 'نقش (فارسی)', type: 'text', req: true },
+          { key: 'role_en', label: 'نقش (انگلیسی)', type: 'text', req: true },
+          { key: 'initials', label: 'حروف اول (۲ حرف)', type: 'text', req: true },
+          { key: 'desc_fa', label: 'توضیحات (فارسی)', type: 'textarea', full: true },
+          { key: 'desc_en', label: 'توضیحات (انگلیسی)', type: 'textarea', full: true }
+        ]
+      }
+    };
+
+    // ============================================================
+    // IMAGE UPLOADER HELPERS
+    // ============================================================
+    function renderImageField(field, value) {
+      const hasImg = !!value;
+      return `
+        <div class="form-field full">
+          <label>${field.label}</label>
+          <div class="img-uploader">
+            <div class="img-preview" id="preview_${field.key}">
+              ${hasImg ? `<img src="${value}" alt="preview" />` : '<span>بدون تصویر</span>'}
+            </div>
+            <div class="img-uploader-actions">
+              <label class="upload-btn" for="file_${field.key}">
+                📁 انتخاب تصویر
+              </label>
+              <input type="file" id="file_${field.key}" accept="image/*" style="display:none;" onchange="handleImageUpload(event, '${field.key}')" />
+              <button type="button" class="upload-btn danger" onclick="clearImage('${field.key}')">🗑 حذف تصویر</button>
+              <div class="upload-hint">فرمت JPG/PNG/WebP — حداکثر ۲ مگابایت</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function handleImageUpload(e, key) {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) {
+        toast('حجم تصویر بیش از ۲ مگابایت است', 'error');
+        e.target.value = '';
+        return;
+      }
+      if (!file.type.startsWith('image/')) {
+        toast('فایل انتخاب شده تصویر نیست', 'error');
+        e.target.value = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const dataUrl = ev.target.result;
+        tempImages[key] = dataUrl;
+        const preview = document.getElementById('preview_' + key);
+        if (preview) preview.innerHTML = `<img src="${dataUrl}" alt="preview" />`;
+        toast('تصویر انتخاب شد (پس از ذخیره اعمال می‌شود)');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearImage(key) {
+      tempImages[key] = '';
+      const preview = document.getElementById('preview_' + key);
+      if (preview) preview.innerHTML = '<span>بدون تصویر</span>';
+      const fileInput = document.getElementById('file_' + key);
+      if (fileInput) fileInput.value = '';
+    }
+
+    // ============================================================
+    // MODAL
+    // ============================================================
+    function openModal(type, id) {
+      modalState = { type, id: id || null };
+      tempImages = {};
+      const cfg = modalConfig[type];
+      const item = id ? data[type + 's'].find(x => x.id === id) : {};
+      document.getElementById('modalTitle').textContent = id ? cfg.titleEdit : cfg.titleNew;
+
+      // Preload existing images into tempImages
+      if (cfg.imageFields) {
+        cfg.imageFields.forEach(f => {
+          if (item[f.key]) tempImages[f.key] = item[f.key];
+        });
+      }
+
+      const form = document.getElementById('modalForm');
+      form.className = 'form-grid';
+      let html = '';
+
+      // Image fields first
+      if (cfg.imageFields) {
+        cfg.imageFields.forEach(f => {
+          html += renderImageField(f, item[f.key] || '');
+        });
+      }
+
+      // Regular fields
+      html += cfg.fields.map(f => {
+        const val = item[f.key] !== undefined ? item[f.key] : '';
+        let inputHtml = '';
+        if (f.type === 'textarea') {
+          inputHtml = `<textarea id="mf_${f.key}">${esc(val)}</textarea>`;
+        } else if (f.type === 'select') {
+          const opts = f.options.map(o => {
+            const v = Array.isArray(o) ? o[0] : o;
+            const lbl = Array.isArray(o) ? o[1] : o;
+            return `<option value="${esc(v)}" ${val === v ? 'selected' : ''}>${esc(lbl)}</option>`;
+          }).join('');
+          inputHtml = `<select id="mf_${f.key}"><option value="">انتخاب...</option>${opts}</select>`;
+        } else {
+          inputHtml = `<input type="${f.type}" id="mf_${f.key}" value="${esc(val)}" />`;
+        }
+        return `<div class="form-field ${f.full ? 'full' : ''}">
+          <label>${f.label} ${f.req ? '<span class="req">*</span>' : ''}</label>
+          ${inputHtml}
+        </div>`;
+      }).join('');
+
+      form.innerHTML = html;
+      document.getElementById('modalOverlay').classList.add('open');
+    }
+
+    function closeModal() {
+      document.getElementById('modalOverlay').classList.remove('open');
+      modalState = { type: null, id: null };
+      tempImages = {};
+    }
+
+    function saveModal() {
+      const { type, id } = modalState;
+      const cfg = modalConfig[type];
+      const obj = id ? { ...data[type + 's'].find(x => x.id === id) } : { id: uid(type.charAt(0)) };
+      let valid = true;
+
+      // Validate and collect regular fields
+      cfg.fields.forEach(f => {
+        const el = document.getElementById('mf_' + f.key);
+        const val = el.value.trim();
+        if (f.req && !val) { el.style.borderColor = '#ff6b7a'; valid = false; }
+        else { el.style.borderColor = ''; }
+        if (f.type === 'number') obj[f.key] = val === '' ? '' : Number(val);
+        else obj[f.key] = val;
+      });
+
+      if (!valid) {
+        toast('لطفاً فیلدهای ضروری را پر کنید', 'error');
+        return;
+      }
+
+      // Collect image fields from tempImages
+      if (cfg.imageFields) {
+        cfg.imageFields.forEach(f => {
+          obj[f.key] = tempImages[f.key] || '';
+        });
+      }
+
+      // Add default empty values for any missing image fields (for backward compat)
+      if (type === 'article') {
+        if (obj.coverImage === undefined) obj.coverImage = '';
+        if (obj.midImage === undefined) obj.midImage = '';
+        if (obj.lateImage === undefined) obj.lateImage = '';
+      } else {
+        if (obj.image === undefined) obj.image = '';
+      }
+
+      const list = data[type + 's'];
+      if (id) {
+        const idx = list.findIndex(x => x.id === id);
+        list[idx] = obj;
+        toast('با موفقیت ویرایش شد');
+      } else {
+        list.push(obj);
+        toast('با موفقیت افزوده شد');
+      }
+      const saved = saveKey(KEYS[type + 's'], list);
+      if (saved) {
+        renderAll();
+        updateCounts();
+        closeModal();
+      }
+    }
+
+    function editItem(type, id) { openModal(type, id); }
+
+    function deleteItem(type, id) {
+      if (!confirm('آیا از حذف این مورد مطمئن هستید؟')) return;
+      data[type + 's'] = data[type + 's'].filter(x => x.id !== id);
+      saveKey(KEYS[type + 's'], data[type + 's']);
+      renderAll();
+      updateCounts();
+      toast('با موفقیت حذف شد');
+    }
+
+    function deleteMessage(id) {
+      if (!confirm('حذف این پیام؟')) return;
+      data.messages = data.messages.filter(x => x.id !== id);
+      saveKey(KEYS.messages, data.messages);
+      renderMessages();
+      updateCounts();
+      toast('پیام حذف شد');
+    }
+
+    function clearAllMessages() {
+      if (!confirm('همه پیام‌ها پاک شوند؟')) return;
+      data.messages = [];
+      saveKey(KEYS.messages, data.messages);
+      renderMessages();
+      updateCounts();
+      toast('همه پیام‌ها پاک شدند');
+    }
+
+    // ============================================================
+    // SITE SETTINGS
+    // ============================================================
+    function saveSiteSettings() {
+      data.site.heroTitle = document.getElementById('siteHeroTitle').value.trim();
+      const sub = document.getElementById('siteHeroSub').value.trim();
+      const desc = document.getElementById('siteHeroDesc').value.trim();
+      const about = document.getElementById('siteAboutText').value.trim();
+      const b1 = document.getElementById('siteBtn1').value.trim();
+      const b2 = document.getElementById('siteBtn2').value.trim();
+      if (currentLang === 'fa') {
+        data.site.heroSub_fa = sub;
+        data.site.heroDesc_fa = desc;
+        data.site.aboutText_fa = about;
+        data.site.btn1_fa = b1;
+        data.site.btn2_fa = b2;
+      } else {
+        data.site.heroSub_en = sub;
+        data.site.heroDesc_en = desc;
+        data.site.aboutText_en = about;
+        data.site.btn1_en = b1;
+        data.site.btn2_en = b2;
+      }
+      saveKey(KEYS.site, data.site);
+      toast('تنظیمات ذخیره شد');
+    }
+    function resetSiteSettings() {
+      if (!confirm('بازنشانی تنظیمات به حالت پیش‌فرض؟')) return;
+      data.site = JSON.parse(JSON.stringify(defaultSite));
+      saveKey(KEYS.site, data.site);
+      renderSiteSettings();
+      toast('تنظیمات بازنشانی شد');
+    }
+
+    // ============================================================
+    // BACKUP
+    // ============================================================
+    function updateStorageInfo() {
+      const el = document.getElementById('storageInfo');
+      let total = 0;
+      const lines = Object.keys(KEYS).map(k => {
+        let size = 0;
+        try { const raw = localStorage.getItem(KEYS[k]); size = raw ? raw.length : 0; } catch (e) {}
+        total += size;
+        return `<div style="display:flex;justify-content:space-between;padding:4px 0;"><span>${k}</span><span>${(size/1024).toFixed(1)} KB</span></div>`;
+      }).join('');
+      el.innerHTML = lines + `<div style="display:flex;justify-content:space-between;padding:8px 0 0;margin-top:6px;border-top:1px solid var(--border);font-weight:700;color:#fff;"><span>مجموع</span><span>${(total/1024).toFixed(1)} KB</span></div>`;
+    }
+
+    function exportData() {
+      const payload = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        data: {
+          comics: data.comics,
+          articles: data.articles,
+          movies: data.movies,
+          characters: data.characters,
+          team: data.team,
+          messages: data.messages,
+          site: data.site
+        }
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'deadverse-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+      a.click();
+      URL.revokeObjectURL(url);
+      toast('پشتیبان دانلود شد');
+    }
+
+    function importData(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const parsed = JSON.parse(ev.target.result);
+          if (!parsed.data) throw new Error('فرمت نامعتبر');
+          if (!confirm('اطلاعات فعلی با فایل پشتیبان جایگزین شود؟')) return;
+          data.comics = parsed.data.comics || [];
+          data.articles = parsed.data.articles || [];
+          data.movies = parsed.data.movies || [];
+          data.characters = parsed.data.characters || [];
+          data.team = parsed.data.team || [];
+          data.messages = parsed.data.messages || [];
+          data.site = parsed.data.site || JSON.parse(JSON.stringify(defaultSite));
+          saveAll();
+          renderAll();
+          updateCounts();
+          renderSiteSettings();
+          updateStorageInfo();
+          toast('پشتیبان با موفقیت بارگذاری شد');
+        } catch (err) {
+          toast('خطا در خواندن فایل: ' + err.message, 'error');
+        }
+        e.target.value = '';
+      };
+      reader.readAsText(file);
+    }
+
+    function resetAllData() {
+      if (!confirm('⚠ همه داده‌ها به حالت پیش‌فرض بازمی‌گردند. مطمئن هستید؟')) return;
+      if (!confirm('این عملیات قابل بازگشت نیست. ادامه می‌دهید؟')) return;
+      Object.keys(KEYS).forEach(k => {
+        try { localStorage.removeItem(KEYS[k]); } catch (e) {}
+      });
+      loadData();
+      renderAll();
+      updateCounts();
+      renderSiteSettings();
+      updateStorageInfo();
+      toast('همه داده‌ها بازنشانی شدند');
+    }
+
+    // ============================================================
+    // LANG TOGGLE
+    // ============================================================
+    document.getElementById('langToggle').addEventListener('click', () => {
+      currentLang = currentLang === 'fa' ? 'en' : 'fa';
+      document.body.setAttribute('data-lang', currentLang);
+      document.body.setAttribute('dir', currentLang === 'fa' ? 'rtl' : 'ltr');
+      document.getElementById('langLabel').textContent = currentLang === 'fa' ? 'English' : 'فارسی';
+      renderSiteSettings();
+    });
+
+    // ============================================================
+    // SEARCH LISTENERS
+    // ============================================================
+    document.getElementById('searchComics').addEventListener('input', e => renderComics(e.target.value));
+    document.getElementById('searchArticles').addEventListener('input', e => renderArticles(e.target.value));
+    document.getElementById('searchMovies').addEventListener('input', e => renderMovies(e.target.value));
+    document.getElementById('searchCharacters').addEventListener('input', e => renderCharacters(e.target.value));
+
+    // ============================================================
+    // EVENTS
+    // ============================================================
+    document.getElementById('loginBtn').addEventListener('click', doLogin);
+    document.getElementById('loginPass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+    document.getElementById('captchaAnswer').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+    document.getElementById('loginUser').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('loginPass').focus(); });
+    document.getElementById('captchaRefresh').addEventListener('click', generateCaptcha);
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      if (confirm('از حساب خارج می‌شوید؟')) logout();
+    });
+
+    document.getElementById('sidebarNav').addEventListener('click', e => {
+      const link = e.target.closest('.sidebar-link');
+      if (link) switchPage(link.dataset.page);
+    });
+
+    document.getElementById('menuToggle').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.toggle('open');
+    });
+
+    document.getElementById('modalOverlay').addEventListener('click', e => {
+      if (e.target.id === 'modalOverlay') closeModal();
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeModal();
+    });
+
+    // ============================================================
+    // INIT
+    // ============================================================
+    document.body.setAttribute('data-lang', currentLang);
+    document.body.setAttribute('dir', 'rtl');
+
+    generateCaptcha();
+
+    if (checkAuth()) {
+      showAdmin();
+    } else {
+      document.getElementById('loginScreen').classList.remove('hidden');
+      document.getElementById('adminLayout').style.display = 'none';
+    }
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,1962 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DEADVERSE • دنیای ابرقهرمانان</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Vazirmatn:wght@300;400;600;700;900&display=swap" rel="stylesheet" />
+  <style>
+    /* ========== RESET & GLOBAL ========== */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Vazirmatn', 'Inter', sans-serif;
+      background-color: #050508;
+      color: #e8e8f0;
+      overflow-x: hidden;
+      line-height: 1.8;
+      min-height: 100vh;
+      position: relative;
+      transition: direction 0.3s;
+    }
+
+    /* English font override when lang is en */
+    body[data-lang="en"] {
+      font-family: 'Inter', 'Vazirmatn', sans-serif;
+      direction: ltr;
+    }
+
+    body[data-lang="en"] h1,
+    body[data-lang="en"] h2,
+    body[data-lang="en"] .logo,
+    body[data-lang="en"] .hero-title,
+    body[data-lang="en"] .section-title,
+    body[data-lang="en"] .footer-col h4,
+    body[data-lang="en"] .team-card h3,
+    body[data-lang="en"] .comic-card .card-body h3,
+    body[data-lang="en"] .char-card .ch-body h3 {
+      font-family: 'Bebas Neue', 'Vazirmatn', sans-serif;
+    }
+
+    /* Animated cosmic background */
+    .bg-canvas {
+      position: fixed; inset: 0; z-index: 0;
+      background: radial-gradient(ellipse at 20% 10%, #1a0a1a 0%, #050508 60%);
+      overflow: hidden; pointer-events: none;
+    }
+    .bg-canvas::before {
+      content: ''; position: absolute; inset: -50%;
+      background:
+        radial-gradient(circle at 30% 40%, rgba(200, 30, 50, 0.18) 0%, transparent 45%),
+        radial-gradient(circle at 75% 60%, rgba(30, 60, 200, 0.15) 0%, transparent 45%),
+        radial-gradient(circle at 50% 80%, rgba(120, 0, 180, 0.10) 0%, transparent 50%);
+      animation: bgDrift 20s ease-in-out infinite alternate;
+    }
+    .bg-canvas::after {
+      content: ''; position: absolute; inset: 0;
+      background-image:
+        radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.5) 0%, transparent 100%),
+        radial-gradient(1px 1px at 40% 70%, rgba(255,255,255,0.35) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 80% 30%, rgba(255,255,255,0.45) 0%, transparent 100%),
+        radial-gradient(1px 1px at 65% 85%, rgba(255,255,255,0.3) 0%, transparent 100%),
+        radial-gradient(1px 1px at 90% 10%, rgba(255,255,255,0.4) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 25% 55%, rgba(255,255,255,0.25) 0%, transparent 100%);
+      background-size: 200px 200px, 300px 300px, 250px 250px, 180px 180px, 220px 220px, 280px 280px;
+      animation: starTwinkle 8s ease-in-out infinite alternate;
+    }
+    @keyframes bgDrift {
+      0% { transform: translate(0, 0) rotate(0deg); }
+      100% { transform: translate(2%, -1%) rotate(1deg); }
+    }
+    @keyframes starTwinkle {
+      0% { opacity: 0.6; } 100% { opacity: 1; }
+    }
+
+    /* Utility */
+    .container {
+      width: 100%; max-width: 1280px; margin: 0 auto;
+      padding: 0 20px; position: relative; z-index: 1;
+    }
+    section { position: relative; z-index: 1; padding: 80px 0; }
+
+    h2.section-title {
+      font-family: 'Vazirmatn', sans-serif;
+      font-weight: 900;
+      font-size: clamp(1.8rem, 5vw, 3rem);
+      text-align: center; margin-bottom: 12px;
+      background: linear-gradient(90deg, #e63946, #f1f1f1, #3a86ff);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: 1px;
+    }
+    body[data-lang="en"] h2.section-title {
+      font-family: 'Bebas Neue', sans-serif;
+      letter-spacing: 3px;
+    }
+
+    .section-sub {
+      text-align: center; color: #999; font-size: 0.95rem;
+      margin-bottom: 48px; max-width: 600px;
+      margin-left: auto; margin-right: auto;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-block; padding: 12px 28px; border-radius: 40px;
+      font-weight: 600; font-size: 0.9rem; letter-spacing: 0.5px;
+      text-decoration: none; cursor: pointer; border: none;
+      transition: all 0.3s ease; position: relative; overflow: hidden;
+      font-family: 'Vazirmatn', sans-serif;
+    }
+    body[data-lang="en"] .btn { font-family: 'Inter', sans-serif; }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #e63946, #c1121f);
+      color: #fff; box-shadow: 0 4px 20px rgba(230, 57, 70, 0.35);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(230, 57, 70, 0.55);
+    }
+    .btn-outline {
+      background: transparent; color: #e8e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+    }
+    .btn-outline:hover {
+      border-color: #e63946; color: #e63946;
+      box-shadow: 0 0 20px rgba(230, 57, 70, 0.2);
+    }
+
+    /* Language Toggle */
+    .lang-toggle {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 16px; border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.04);
+      color: #ccc; font-size: 0.78rem; font-weight: 600;
+      cursor: pointer; transition: all 0.3s ease;
+      font-family: 'Vazirmatn', sans-serif;
+      letter-spacing: 0.5px; white-space: nowrap;
+    }
+    body[data-lang="en"] .lang-toggle { font-family: 'Inter', sans-serif; }
+    .lang-toggle:hover {
+      border-color: #e63946; color: #fff;
+      background: rgba(230, 57, 70, 0.1);
+      box-shadow: 0 0 18px rgba(230, 57, 70, 0.2);
+    }
+    .lang-toggle .globe {
+      font-size: 0.95rem; line-height: 1;
+    }
+
+    /* ========== LOADING SCREEN ========== */
+    #loader {
+      position: fixed; inset: 0; z-index: 9999; background: #050508;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      transition: opacity 0.8s ease, visibility 0.8s ease;
+    }
+    #loader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+    .loader-text {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(3rem, 10vw, 6rem);
+      letter-spacing: 8px; color: #fff;
+      border-right: 3px solid #e63946; white-space: nowrap;
+      overflow: hidden;
+      animation: typing 1.8s steps(9) forwards, blinkCursor 0.8s step-end infinite;
+      padding-right: 8px;
+    }
+    @keyframes typing { from { width: 0; } to { width: 100%; } }
+    @keyframes blinkCursor { 50% { border-color: transparent; } }
+
+    .loader-bar {
+      width: 200px; height: 3px; background: rgba(255, 255, 255, 0.1);
+      margin-top: 24px; border-radius: 2px; overflow: hidden;
+    }
+    .loader-bar span {
+      display: block; height: 100%; width: 0%;
+      background: linear-gradient(90deg, #e63946, #3a86ff);
+      animation: loadBar 1.8s ease forwards;
+    }
+    @keyframes loadBar { to { width: 100%; } }
+
+    /* ========== HEADER ========== */
+    header {
+      position: fixed; top: 0; left: 0; width: 100%; z-index: 1000;
+      padding: 18px 0;
+      transition: background 0.4s ease, backdrop-filter 0.4s ease, padding 0.4s ease, box-shadow 0.4s ease;
+    }
+    header.scrolled {
+      background: rgba(5, 5, 8, 0.85);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      padding: 10px 0;
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.6);
+    }
+    .header-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px;
+    }
+    .logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.8rem; letter-spacing: 3px; color: #fff;
+      text-decoration: none; position: relative; transition: color 0.3s;
+      white-space: nowrap;
+    }
+    .logo span { color: #e63946; }
+    .logo::after {
+      content: ''; position: absolute; left: 0; bottom: -4px;
+      width: 100%; height: 2px;
+      background: linear-gradient(90deg, #e63946, transparent);
+      transform: scaleX(0); transform-origin: left;
+      transition: transform 0.3s ease;
+    }
+    .logo:hover::after { transform: scaleX(1); }
+
+    nav.desktop-nav {
+      display: flex; align-items: center; gap: 22px; flex-wrap: nowrap;
+    }
+    nav.desktop-nav a {
+      color: #b0b0c0; text-decoration: none; font-size: 0.82rem;
+      font-weight: 600; letter-spacing: 0.3px; position: relative;
+      transition: color 0.3s; white-space: nowrap;
+    }
+    nav.desktop-nav a::after {
+      content: ''; position: absolute; left: 0; bottom: -6px;
+      width: 100%; height: 2px; background: #e63946;
+      transform: scaleX(0); transform-origin: right;
+      transition: transform 0.3s ease;
+    }
+    nav.desktop-nav a:hover, nav.desktop-nav a.active { color: #fff; }
+    nav.desktop-nav a:hover::after, nav.desktop-nav a.active::after {
+      transform: scaleX(1); transform-origin: left;
+    }
+
+    .header-actions {
+      display: flex; align-items: center; gap: 12px;
+    }
+
+    .hamburger {
+      display: none; flex-direction: column; gap: 5px;
+      cursor: pointer; background: none; border: none;
+      padding: 6px; z-index: 1100;
+    }
+    .hamburger span {
+      display: block; width: 26px; height: 2px;
+      background: #fff; border-radius: 2px;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+    .hamburger.active span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .hamburger.active span:nth-child(2) { opacity: 0; }
+    .hamburger.active span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    /* Mobile nav */
+    .mobile-nav {
+      position: fixed; top: 0; right: -100%;
+      width: 75%; max-width: 320px; height: 100vh;
+      background: rgba(10, 10, 16, 0.98);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      z-index: 1050; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; gap: 24px;
+      transition: right 0.45s cubic-bezier(0.77, 0, 0.18, 1);
+      border-left: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .mobile-nav.open { right: 0; }
+    .mobile-nav a {
+      color: #ccc; text-decoration: none; font-size: 1.05rem;
+      font-weight: 600; letter-spacing: 0.5px;
+      transition: color 0.3s, transform 0.3s;
+    }
+    .mobile-nav a:hover { color: #e63946; transform: translateX(4px); }
+
+    .nav-overlay {
+      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6);
+      z-index: 1040; opacity: 0; visibility: hidden;
+      transition: opacity 0.4s, visibility 0.4s;
+    }
+    .nav-overlay.active { opacity: 1; visibility: visible; }
+
+    /* ========== HERO ========== */
+    .hero {
+      min-height: 100vh; display: flex; align-items: center;
+      justify-content: center; text-align: center;
+      padding: 120px 20px 80px; position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: ''; position: absolute; top: 50%; left: 50%;
+      width: 600px; height: 600px; transform: translate(-50%, -50%);
+      background: radial-gradient(circle, rgba(230, 57, 70, 0.12) 0%, transparent 70%);
+      pointer-events: none; animation: heroGlow 6s ease-in-out infinite alternate;
+    }
+    @keyframes heroGlow {
+      0% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
+      100% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+    }
+    .hero-content { position: relative; z-index: 2; }
+    .hero-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(3.5rem, 14vw, 9rem);
+      letter-spacing: 10px; line-height: 1; color: #fff;
+      text-shadow: 0 0 30px rgba(230, 57, 70, 0.5), 0 0 80px rgba(58, 134, 255, 0.25);
+      white-space: nowrap; overflow: hidden; margin: 0 auto;
+    }
+    .hero-sub {
+      font-size: clamp(0.85rem, 2.5vw, 1.1rem);
+      letter-spacing: 3px; color: #b0b0c0; margin-top: 16px;
+      font-weight: 400; text-transform: uppercase;
+      opacity: 0; animation: fadeUp 1s ease 2.2s forwards;
+    }
+    .hero-desc {
+      max-width: 580px; margin: 24px auto 36px;
+      color: #8a8a9e; font-size: 0.95rem; line-height: 1.9;
+      opacity: 0; animation: fadeUp 1s ease 2.5s forwards;
+    }
+    .hero-btns {
+      display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
+      opacity: 0; animation: fadeUp 1s ease 2.8s forwards;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .orb {
+      position: absolute; border-radius: 50%; filter: blur(60px);
+      opacity: 0.35; pointer-events: none; animation: float 10s ease-in-out infinite;
+    }
+    .orb-1 { width: 300px; height: 300px; background: #e63946; top: 10%; left: 5%; }
+    .orb-2 { width: 250px; height: 250px; background: #3a86ff; bottom: 15%; right: 8%; animation-delay: 3s; }
+    .orb-3 { width: 180px; height: 180px; background: #9d4edd; top: 60%; left: 70%; animation-delay: 5s; }
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(20px, -30px) scale(1.08); }
+    }
+
+    /* ========== SLIDER / CAROUSEL ========== */
+    .slider-wrap { position: relative; overflow: hidden; }
+    .slider-track {
+      display: flex; gap: 24px;
+      transition: transform 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
+      will-change: transform;
+    }
+    .slider-nav {
+      display: flex; justify-content: center; gap: 14px; margin-top: 32px;
+    }
+    .slider-nav button {
+      width: 44px; height: 44px; border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.04); color: #fff;
+      font-size: 1.2rem; cursor: pointer; transition: all 0.3s ease;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .slider-nav button:hover {
+      background: #e63946; border-color: #e63946;
+      box-shadow: 0 0 20px rgba(230, 57, 70, 0.4);
+    }
+
+    /* Comic card */
+    .comic-card {
+      flex: 0 0 calc(33.333% - 16px); min-width: 0;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 16px; overflow: hidden;
+      transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s;
+      position: relative;
+    }
+    .comic-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(230, 57, 70, 0.15);
+      border-color: rgba(230, 57, 70, 0.3);
+    }
+    .comic-card .card-img {
+      width: 100%; aspect-ratio: 3 / 4;
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden; position: relative;
+    }
+    .comic-card .card-img .img-placeholder {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 4rem; color: rgba(255,255,255,0.15);
+      letter-spacing: 4px; transition: transform 0.4s ease;
+    }
+    .comic-card:hover .card-img .img-placeholder { transform: scale(1.12); }
+    .comic-card .card-img::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(to top, rgba(5,5,8,0.7) 0%, transparent 50%);
+      pointer-events: none;
+    }
+    .comic-card .card-body { padding: 20px; }
+    .comic-card .card-body h3 {
+      font-family: 'Vazirmatn', sans-serif;
+      font-weight: 800;
+      font-size: 1.1rem;
+      color: #fff; margin-bottom: 8px;
+      line-height: 1.5;
+    }
+    body[data-lang="en"] .comic-card .card-body h3 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.3rem;
+      letter-spacing: 1px;
+    }
+    .comic-meta {
+      display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;
+    }
+    .comic-meta span {
+      font-size: 0.72rem; padding: 3px 10px; border-radius: 20px;
+      font-weight: 600; letter-spacing: 0.5px;
+    }
+    .tag-marvel { background: rgba(230, 57, 70, 0.15); color: #ff6b7a; }
+    .tag-dc { background: rgba(58, 134, 255, 0.15); color: #6ba3ff; }
+    .tag-year { background: rgba(255, 255, 255, 0.06); color: #aaa; }
+    .comic-card .card-body p {
+      font-size: 0.82rem; color: #8a8a9e; margin-bottom: 14px;
+      display: -webkit-box; -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical; overflow: hidden;
+      line-height: 1.7;
+    }
+    .comic-card .card-body .btn {
+      padding: 8px 20px; font-size: 0.78rem;
+    }
+
+    /* ========== SEARCH ========== */
+    .search-section { padding: 40px 0; }
+    .search-box {
+      position: relative; max-width: 640px; margin: 0 auto;
+    }
+    .search-box input {
+      width: 100%; padding: 16px 24px 16px 54px;
+      border-radius: 50px; border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.04); color: #fff;
+      font-size: 0.95rem; outline: none;
+      transition: border-color 0.3s, box-shadow 0.3s, background 0.3s;
+      font-family: 'Vazirmatn', sans-serif;
+    }
+    body[data-lang="en"] .search-box input { font-family: 'Inter', sans-serif; }
+    body[data-lang="fa"] .search-box input { padding: 16px 54px 16px 24px; }
+    .search-box input::placeholder { color: #666; }
+    .search-box input:focus {
+      border-color: #e63946;
+      box-shadow: 0 0 0 4px rgba(230, 57, 70, 0.12), 0 0 30px rgba(230, 57, 70, 0.1);
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .search-icon {
+      position: absolute; left: 20px; top: 50%; transform: translateY(-50%);
+      color: #666; font-size: 1.1rem; pointer-events: none;
+    }
+    body[data-lang="fa"] .search-icon { left: auto; right: 20px; }
+
+    .search-results {
+      position: absolute; top: calc(100% + 10px); left: 0; right: 0;
+      background: rgba(12, 12, 20, 0.98);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px; max-height: 340px; overflow-y: auto;
+      z-index: 500; display: none;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+    }
+    .search-results.active { display: block; }
+    .search-item {
+      padding: 14px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      cursor: pointer; transition: background 0.2s;
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 10px;
+    }
+    .search-item:last-child { border-bottom: none; }
+    .search-item:hover { background: rgba(230, 57, 70, 0.08); }
+    .search-item .si-title { font-size: 0.88rem; font-weight: 600; color: #eee; }
+    .search-item .si-type {
+      font-size: 0.7rem; padding: 3px 10px; border-radius: 20px;
+      background: rgba(255, 255, 255, 0.06); color: #888;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+    .search-empty {
+      padding: 24px; text-align: center; color: #666; font-size: 0.88rem;
+    }
+
+    /* ========== CATEGORY FILTER ========== */
+    .category-bar {
+      display: flex; justify-content: center; flex-wrap: wrap;
+      gap: 10px; margin-bottom: 40px;
+    }
+    .cat-btn {
+      padding: 8px 22px; border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: transparent; color: #999; font-size: 0.8rem;
+      font-weight: 600; cursor: pointer; transition: all 0.3s ease;
+      letter-spacing: 0.3px; font-family: 'Vazirmatn', sans-serif;
+    }
+    body[data-lang="en"] .cat-btn { font-family: 'Inter', sans-serif; letter-spacing: 0.5px; }
+    .cat-btn:hover { border-color: rgba(230, 57, 70, 0.4); color: #ddd; }
+    .cat-btn.active {
+      background: #e63946; border-color: #e63946; color: #fff;
+      box-shadow: 0 0 20px rgba(230, 57, 70, 0.35);
+    }
+
+    /* ========== ARTICLE GRID ========== */
+    .article-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 24px;
+    }
+    .article-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 16px; overflow: hidden;
+      transition: transform 0.35s, box-shadow 0.35s, border-color 0.35s;
+      opacity: 1;
+    }
+    .article-card.hidden { display: none; }
+    .article-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+      border-color: rgba(230, 57, 70, 0.25);
+    }
+    .article-card .art-img {
+      width: 100%; aspect-ratio: 16 / 9;
+      background: linear-gradient(135deg, #1a1a2e, #0f0f1a);
+      display: flex; align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+    }
+    .article-card .art-img .img-placeholder {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.2rem; color: rgba(255,255,255,0.1);
+      letter-spacing: 3px; transition: transform 0.4s ease;
+    }
+    .article-card:hover .art-img .img-placeholder { transform: scale(1.1); }
+    .article-card .art-body { padding: 20px; }
+    .article-card .art-body .art-meta {
+      display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;
+    }
+    .article-card .art-body h3 {
+      font-size: 1rem; font-weight: 700; color: #fff;
+      margin-bottom: 8px; line-height: 1.6;
+    }
+    .article-card .art-body p {
+      font-size: 0.82rem; color: #8a8a9e; margin-bottom: 14px;
+      display: -webkit-box; -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical; overflow: hidden;
+      line-height: 1.7;
+    }
+
+    /* ========== MOVIE GRID ========== */
+    .movie-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 22px;
+    }
+    .movie-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 14px; overflow: hidden;
+      transition: transform 0.35s, box-shadow 0.35s;
+    }
+    .movie-card:hover {
+      transform: translateY(-6px) scale(1.02);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 25px rgba(58, 134, 255, 0.1);
+    }
+    .movie-card .mv-img {
+      width: 100%; aspect-ratio: 2 / 3;
+      background: linear-gradient(160deg, #16213e, #0f0f1a);
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+    }
+    .movie-card .mv-img .img-placeholder {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2rem; color: rgba(255,255,255,0.12); letter-spacing: 2px;
+    }
+    .movie-card .mv-body { padding: 16px; }
+    .movie-card .mv-body h3 {
+      font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 6px;
+      line-height: 1.5;
+    }
+    .mv-meta {
+      display: flex; align-items: center; gap: 8px;
+      flex-wrap: wrap; margin-bottom: 8px;
+    }
+    .mv-meta .rating {
+      color: #f5c518; font-weight: 700; font-size: 0.8rem;
+    }
+    .movie-card .mv-body p {
+      font-size: 0.78rem; color: #8a8a9e;
+      display: -webkit-box; -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical; overflow: hidden;
+      line-height: 1.6;
+    }
+
+    /* ========== CHARACTER GRID ========== */
+    .char-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 22px;
+    }
+    .char-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 16px; overflow: hidden; text-align: center;
+      transition: transform 0.35s, box-shadow 0.35s, border-color 0.35s;
+      position: relative;
+    }
+    .char-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(157, 78, 221, 0.15);
+      border-color: rgba(157, 78, 221, 0.3);
+    }
+    .char-card .ch-img {
+      width: 100%; aspect-ratio: 1 / 1;
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
+      display: flex; align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+    }
+    .char-card .ch-img .img-placeholder {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.6rem; color: rgba(255,255,255,0.1);
+      letter-spacing: 2px; transition: transform 0.4s ease;
+    }
+    .char-card:hover .ch-img .img-placeholder { transform: scale(1.15); }
+    .char-card .ch-body { padding: 16px; }
+    .char-card .ch-body h3 {
+      font-family: 'Vazirmatn', sans-serif;
+      font-weight: 800;
+      font-size: 1rem;
+      color: #fff; margin-bottom: 4px;
+    }
+    body[data-lang="en"] .char-card .ch-body h3 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.1rem;
+      letter-spacing: 1px;
+    }
+    .char-card .ch-body .ch-universe {
+      font-size: 0.7rem; font-weight: 600; letter-spacing: 1px;
+      text-transform: uppercase; margin-bottom: 8px;
+    }
+    .char-card .ch-body p {
+      font-size: 0.78rem; color: #8a8a9e; margin-bottom: 12px;
+      display: -webkit-box; -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical; overflow: hidden;
+      line-height: 1.6;
+    }
+    .char-card .ch-body .btn { padding: 6px 18px; font-size: 0.72rem; }
+
+    /* ========== ABOUT ========== */
+    .about-section { text-align: center; }
+    .about-text {
+      max-width: 720px; margin: 0 auto; font-size: 1rem;
+      color: #a0a0b5; line-height: 2; min-height: 80px;
+    }
+    .about-text .caret {
+      display: inline-block; width: 2px; height: 1.1em;
+      background: #e63946; vertical-align: text-bottom;
+      animation: blinkCaret 0.8s step-end infinite;
+    }
+    @keyframes blinkCaret { 50% { opacity: 0; } }
+
+    /* ========== TEAM ========== */
+    .team-slider .slider-track { gap: 20px; }
+    .team-card {
+      flex: 0 0 calc(25% - 15px); min-width: 0;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 16px; padding: 28px 20px; text-align: center;
+      transition: transform 0.35s, box-shadow 0.35s, border-color 0.35s;
+    }
+    .team-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+      border-color: rgba(58, 134, 255, 0.25);
+    }
+    .team-card .t-avatar {
+      width: 80px; height: 80px; border-radius: 50%;
+      margin: 0 auto 16px;
+      background: linear-gradient(135deg, #e63946, #3a86ff);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.6rem; color: #fff; letter-spacing: 2px;
+      box-shadow: 0 0 25px rgba(230, 57, 70, 0.25);
+    }
+    .team-card h3 {
+      font-size: 1rem; font-weight: 700; color: #fff; margin-bottom: 4px;
+    }
+    .team-card .role {
+      font-size: 0.75rem; color: #e63946; font-weight: 600;
+      letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px;
+    }
+    .team-card p {
+      font-size: 0.78rem; color: #8a8a9e; margin-bottom: 14px; line-height: 1.7;
+    }
+    .team-card .socials {
+      display: flex; justify-content: center; gap: 10px;
+    }
+    .team-card .socials a {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: rgba(255, 255, 255, 0.05);
+      display: flex; align-items: center; justify-content: center;
+      color: #888; font-size: 0.75rem; text-decoration: none;
+      transition: all 0.3s;
+    }
+    .team-card .socials a:hover {
+      background: #e63946; color: #fff; transform: translateY(-2px);
+    }
+
+    /* ========== CONTACT ========== */
+    .contact-form {
+      max-width: 600px; margin: 0 auto;
+      display: flex; flex-direction: column; gap: 18px;
+    }
+    .form-group { position: relative; }
+    .form-group input,
+    .form-group textarea {
+      width: 100%; padding: 16px 20px; border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.03); color: #fff;
+      font-size: 0.9rem; font-family: 'Vazirmatn', sans-serif;
+      outline: none;
+      transition: border-color 0.3s, box-shadow 0.3s, background 0.3s;
+    }
+    body[data-lang="en"] .form-group input,
+    body[data-lang="en"] .form-group textarea { font-family: 'Inter', sans-serif; }
+    .form-group textarea { min-height: 140px; resize: vertical; }
+    .form-group input::placeholder,
+    .form-group textarea::placeholder { color: #666; }
+    .form-group input:focus,
+    .form-group textarea:focus {
+      border-color: #e63946;
+      box-shadow: 0 0 0 3px rgba(230, 57, 70, 0.1);
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .form-group .error-msg {
+      font-size: 0.72rem; color: #ff6b7a; margin-top: 4px; display: none;
+    }
+    .form-group.invalid input,
+    .form-group.invalid textarea { border-color: #ff6b7a; }
+    .form-group.invalid .error-msg { display: block; }
+    .contact-form .btn-primary {
+      align-self: flex-start; padding: 14px 40px;
+    }
+    body[data-lang="fa"] .contact-form .btn-primary { align-self: flex-start; }
+    .form-success {
+      display: none; padding: 16px 20px; border-radius: 12px;
+      background: rgba(46, 213, 115, 0.1);
+      border: 1px solid rgba(46, 213, 115, 0.3);
+      color: #2ed573; font-size: 0.88rem; text-align: center;
+    }
+    .form-success.show { display: block; }
+
+    /* ========== FOOTER ========== */
+    footer {
+      position: relative; z-index: 1;
+      background: rgba(0, 0, 0, 0.4);
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 60px 0 0;
+    }
+    .footer-grid {
+      display: grid; grid-template-columns: 2fr 1fr 1fr 1.5fr;
+      gap: 40px; padding-bottom: 40px;
+    }
+    .footer-col h4 {
+      font-family: 'Vazirmatn', sans-serif;
+      font-weight: 800;
+      font-size: 1.05rem;
+      color: #fff; margin-bottom: 18px;
+    }
+    body[data-lang="en"] .footer-col h4 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.1rem;
+      letter-spacing: 2px;
+    }
+    .footer-col p {
+      font-size: 0.85rem; color: #8a8a9e; line-height: 1.9;
+    }
+    .footer-col ul {
+      list-style: none; display: flex; flex-direction: column; gap: 10px;
+    }
+    .footer-col ul a {
+      color: #8a8a9e; text-decoration: none; font-size: 0.85rem;
+      transition: color 0.3s, transform 0.3s; display: inline-block;
+    }
+    .footer-col ul a:hover { color: #e63946; transform: translateX(4px); }
+    body[data-lang="fa"] .footer-col ul a:hover { transform: translateX(-4px); }
+
+    .footer-socials {
+      display: flex; gap: 10px; margin-top: 16px;
+    }
+    .footer-socials a {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: rgba(255, 255, 255, 0.05);
+      display: flex; align-items: center; justify-content: center;
+      color: #aaa; font-size: 0.85rem; text-decoration: none;
+      transition: all 0.3s;
+    }
+    .footer-socials a:hover {
+      background: #e63946; color: #fff; transform: translateY(-3px);
+      box-shadow: 0 0 20px rgba(230, 57, 70, 0.3);
+    }
+
+    .newsletter-form {
+      display: flex; gap: 8px; margin-top: 12px;
+    }
+    .newsletter-form input {
+      flex: 1; padding: 10px 16px; border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.04); color: #fff;
+      font-size: 0.82rem; outline: none;
+      transition: border-color 0.3s;
+      font-family: 'Vazirmatn', sans-serif;
+    }
+    body[data-lang="en"] .newsletter-form input { font-family: 'Inter', sans-serif; }
+    .newsletter-form input:focus { border-color: #e63946; }
+    .newsletter-form button {
+      padding: 10px 20px; border-radius: 30px; border: none;
+      background: #e63946; color: #fff; font-weight: 600;
+      font-size: 0.78rem; cursor: pointer; transition: all 0.3s;
+      white-space: nowrap; font-family: 'Vazirmatn', sans-serif;
+    }
+    body[data-lang="en"] .newsletter-form button { font-family: 'Inter', sans-serif; }
+    .newsletter-form button:hover {
+      background: #c1121f; box-shadow: 0 0 20px rgba(230, 57, 70, 0.35);
+    }
+
+    .footer-bottom {
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 22px 0; text-align: center;
+      font-size: 0.82rem; color: #666;
+    }
+    .footer-bottom a {
+      color: #e63946; text-decoration: none; font-weight: 600;
+      transition: color 0.3s;
+    }
+    .footer-bottom a:hover { color: #ff6b7a; text-decoration: underline; }
+
+    /* ========== SCROLL REVEAL ========== */
+    .reveal {
+      opacity: 0; transform: translateY(36px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+
+    /* ========== RESPONSIVE ========== */
+    @media (max-width: 1100px) {
+      nav.desktop-nav { gap: 16px; }
+      nav.desktop-nav a { font-size: 0.78rem; }
+    }
+    @media (max-width: 1024px) {
+      .comic-card { flex: 0 0 calc(50% - 12px); }
+      .team-card { flex: 0 0 calc(33.333% - 14px); }
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 900px) {
+      nav.desktop-nav { display: none; }
+      .hamburger { display: flex; }
+    }
+    @media (max-width: 768px) {
+      .hero-title {
+        white-space: normal; letter-spacing: 5px;
+        font-size: clamp(2.8rem, 16vw, 5rem);
+      }
+      .comic-card { flex: 0 0 100%; }
+      .team-card { flex: 0 0 100%; }
+      .article-grid { grid-template-columns: 1fr; }
+      .movie-grid { grid-template-columns: repeat(2, 1fr); }
+      .char-grid { grid-template-columns: repeat(2, 1fr); }
+      .footer-grid { grid-template-columns: 1fr; gap: 30px; }
+      section { padding: 60px 0; }
+      .contact-form .btn-primary { width: 100%; text-align: center; }
+      .hero-sub { letter-spacing: 2px; }
+    }
+    @media (max-width: 480px) {
+      .movie-grid { grid-template-columns: 1fr; }
+      .char-grid { grid-template-columns: 1fr; }
+      .hero-btns { flex-direction: column; align-items: center; }
+      .hero-btns .btn { width: 80%; text-align: center; }
+      .category-bar { gap: 6px; }
+      .cat-btn { padding: 6px 14px; font-size: 0.72rem; }
+      .search-box input { padding: 14px 20px 14px 46px; font-size: 0.85rem; }
+      body[data-lang="fa"] .search-box input { padding: 14px 46px 14px 20px; }
+      .lang-toggle { padding: 6px 12px; font-size: 0.72rem; }
+      .lang-toggle .label-text { display: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #0a0a12; }
+    ::-webkit-scrollbar-thumb { background: #2a2a3a; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #e63946; }
+  </style>
+</head>
+<body data-lang="fa" dir="rtl">
+
+  <!-- LOADING SCREEN -->
+  <div id="loader">
+    <div class="loader-text">DEADVERSE</div>
+    <div class="loader-bar"><span></span></div>
+  </div>
+
+  <!-- BACKGROUND -->
+  <div class="bg-canvas"></div>
+
+  <!-- HEADER -->
+  <header id="header">
+    <div class="container header-inner">
+      <a href="#" class="logo">DEAD<span>VERSE</span></a>
+      <nav class="desktop-nav" id="desktopNav">
+        <a href="#hero" class="active" data-i18n="nav_home">خانه</a>
+        <a href="#comics" data-i18n="nav_marvel">مارول</a>
+        <a href="#comics" data-i18n="nav_dc">دی‌سی</a>
+        <a href="#movies" data-i18n="nav_movies">فیلم‌ها</a>
+        <a href="#characters" data-i18n="nav_characters">شخصیت‌ها</a>
+        <a href="#articles" data-i18n="nav_articles">مقالات</a>
+        <a href="#about" data-i18n="nav_about">درباره ما</a>
+        <a href="#contact" data-i18n="nav_contact">تماس</a>
+      </nav>
+      <div class="header-actions">
+        <button class="lang-toggle" id="langToggle" aria-label="Change language">
+          <span class="globe">🌐</span>
+          <span class="label-text" id="langLabel">EN</span>
+        </button>
+        <button class="hamburger" id="hamburger" aria-label="Toggle menu">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Nav -->
+  <div class="nav-overlay" id="navOverlay"></div>
+  <nav class="mobile-nav" id="mobileNav">
+    <a href="#hero" data-i18n="nav_home">خانه</a>
+    <a href="#comics" data-i18n="nav_marvel">مارول</a>
+    <a href="#comics" data-i18n="nav_dc">دی‌سی</a>
+    <a href="#movies" data-i18n="nav_movies">فیلم‌ها</a>
+    <a href="#characters" data-i18n="nav_characters">شخصیت‌ها</a>
+    <a href="#articles" data-i18n="nav_articles">مقالات</a>
+    <a href="#about" data-i18n="nav_about">درباره ما</a>
+    <a href="#contact" data-i18n="nav_contact">تماس</a>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero" id="hero">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div class="container hero-content">
+      <h1 class="hero-title" id="heroTitle"></h1>
+      <p class="hero-sub" data-i18n="hero_sub">وارد دنیای ابرقهرمانان شوید</p>
+      <p class="hero-desc" data-i18n="hero_desc">
+        به دنیای حماسی مارول و دی‌سی شیرجه بزنید — کمیک‌ها، فیلم‌ها، شخصیت‌ها و داستان‌هایی که نسل‌ها را تعریف کرده‌اند.
+      </p>
+      <div class="hero-btns">
+        <a href="#comics" class="btn btn-primary" data-i18n="hero_btn1">کاوش کمیک‌ها</a>
+        <a href="#characters" class="btn btn-outline" data-i18n="hero_btn2">مشاهده شخصیت‌ها</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMIC SLIDER -->
+  <section id="comics">
+    <div class="container">
+      <h2 class="section-title reveal" data-i18n="comics_title">کتاب‌های کمیک</h2>
+      <p class="section-sub reveal reveal-delay-1" data-i18n="comics_sub">بزرگ‌ترین داستان‌های تاریخ — از مارول و دی‌سی.</p>
+      <div class="slider-wrap reveal reveal-delay-2">
+        <div class="slider-track" id="comicTrack"></div>
+      </div>
+      <div class="slider-nav">
+        <button id="comicPrev" aria-label="Previous">&#8592;</button>
+        <button id="comicNext" aria-label="Next">&#8594;</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SEARCH -->
+  <section class="search-section" id="searchSection">
+    <div class="container">
+      <div class="search-box">
+        <span class="search-icon">⌕</span>
+        <input type="text" id="searchInput" data-i18n-placeholder="search_placeholder" placeholder="جستجو در کمیک‌ها، فیلم‌ها، شخصیت‌ها، مقالات..." autocomplete="off" aria-label="Search" />
+        <div class="search-results" id="searchResults"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ARTICLES -->
+  <section id="articles">
+    <div class="container">
+      <h2 class="section-title reveal" data-i18n="articles_title">آخرین مقالات</h2>
+      <p class="section-sub reveal reveal-delay-1" data-i18n="articles_sub">از دل دنیا — اخبار، نقدها و بررسی‌های عمیق.</p>
+      <div class="category-bar reveal reveal-delay-2" id="categoryBar">
+        <button class="cat-btn active" data-cat="all" data-i18n="cat_all">همه</button>
+        <button class="cat-btn" data-cat="marvel" data-i18n="cat_marvel">مارول</button>
+        <button class="cat-btn" data-cat="dc" data-i18n="cat_dc">دی‌سی</button>
+        <button class="cat-btn" data-cat="movies" data-i18n="cat_movies">فیلم‌ها</button>
+        <button class="cat-btn" data-cat="characters" data-i18n="cat_characters">شخصیت‌ها</button>
+        <button class="cat-btn" data-cat="comics" data-i18n="cat_comics">کمیک‌ها</button>
+        <button class="cat-btn" data-cat="news" data-i18n="cat_news">اخبار</button>
+      </div>
+      <div class="article-grid" id="articleGrid"></div>
+    </div>
+  </section>
+
+  <!-- MOVIES -->
+  <section id="movies">
+    <div class="container">
+      <h2 class="section-title reveal" data-i18n="movies_title">فیلم‌ها</h2>
+      <p class="section-sub reveal reveal-delay-1" data-i18n="movies_sub">فیلم‌های پرفروش دنیای مارول و دی‌سی.</p>
+      <div class="movie-grid" id="movieGrid"></div>
+    </div>
+  </section>
+
+  <!-- CHARACTERS -->
+  <section id="characters">
+    <div class="container">
+      <h2 class="section-title reveal" data-i18n="characters_title">شخصیت‌ها</h2>
+      <p class="section-sub reveal reveal-delay-1" data-i18n="characters_sub">قهرمانان و تبهکارانی که جهان را شکل می‌دهند.</p>
+      <div class="char-grid" id="charGrid"></div>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section id="about" class="about-section">
+    <div class="container">
+      <h2 class="section-title reveal" data-i18n="about_title">درباره DEADVERSE</h2>
+      <p class="about-text" id="aboutText"></p>
+    </div>
+  </section>
+
+  <!-- TEAM -->
+  <section id="team">
+    <div class="container">
+      <h2 class="section-title reveal" data-i18n="team_title">با تیم ما آشنا شوید</h2>
+      <p class="section-sub reveal reveal-delay-1" data-i18n="team_sub">ذهن‌های پشت این دنیا.</p>
+      <div class="slider-wrap team-slider reveal reveal-delay-2">
+        <div class="slider-track" id="teamTrack"></div>
+      </div>
+      <div class="slider-nav">
+        <button id="teamPrev" aria-label="Previous">&#8592;</button>
+        <button id="teamNext" aria-label="Next">&#8594;</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section id="contact">
+    <div class="container">
+      <h2 class="section-title reveal" data-i18n="contact_title">با تیم ما تماس بگیرید</h2>
+      <p class="section-sub reveal reveal-delay-1" data-i18n="contact_sub">سوال یا بازخوردی دارید؟ خوشحال می‌شویم بشنویم.</p>
+      <form class="contact-form reveal reveal-delay-2" id="contactForm" novalidate>
+        <div class="form-group">
+          <input type="text" id="name" data-i18n-placeholder="form_name" placeholder="نام شما" />
+          <span class="error-msg" data-i18n="err_name">لطفاً نام خود را وارد کنید.</span>
+        </div>
+        <div class="form-group">
+          <input type="email" id="email" data-i18n-placeholder="form_email" placeholder="ایمیل شما" />
+          <span class="error-msg" data-i18n="err_email">لطفاً یک ایمیل معتبر وارد کنید.</span>
+        </div>
+        <div class="form-group">
+          <input type="text" id="subject" data-i18n-placeholder="form_subject" placeholder="موضوع" />
+          <span class="error-msg" data-i18n="err_subject">لطفاً موضوع را وارد کنید.</span>
+        </div>
+        <div class="form-group">
+          <textarea id="message" data-i18n-placeholder="form_message" placeholder="پیام شما"></textarea>
+          <span class="error-msg" data-i18n="err_message">لطفاً پیام خود را وارد کنید.</span>
+        </div>
+        <button type="submit" class="btn btn-primary" data-i18n="form_send">ارسال پیام</button>
+        <div class="form-success" id="formSuccess" data-i18n="form_success">✓ پیام شما با موفقیت ارسال شد!</div>
+      </form>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <a href="#" class="logo" style="font-size:1.6rem; display:inline-block; margin-bottom:14px;">DEAD<span>VERSE</span></a>
+          <p data-i18n="footer_about">دروازه شما به دنیای مارول و دی‌سی. کمیک‌ها، فیلم‌ها، شخصیت‌ها و داستان‌هایی که اهمیت دارند.</p>
+          <div class="footer-socials">
+            <a href="#" aria-label="Twitter">𝕏</a>
+            <a href="#" aria-label="Instagram">◉</a>
+            <a href="#" aria-label="YouTube">▶</a>
+            <a href="#" aria-label="Discord">◈</a>
+          </div>
+        </div>
+        <div class="footer-col">
+          <h4 data-i18n="footer_nav">ناوبری</h4>
+          <ul>
+            <li><a href="#hero" data-i18n="nav_home">خانه</a></li>
+            <li><a href="#comics" data-i18n="nav_marvel">مارول</a></li>
+            <li><a href="#comics" data-i18n="nav_dc">دی‌سی</a></li>
+            <li><a href="#movies" data-i18n="nav_movies">فیلم‌ها</a></li>
+            <li><a href="#characters" data-i18n="nav_characters">شخصیت‌ها</a></li>
+            <li><a href="#articles" data-i18n="nav_articles">مقالات</a></li>
+            <li><a href="#about" data-i18n="nav_about">درباره ما</a></li>
+            <li><a href="#contact" data-i18n="nav_contact">تماس</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4 data-i18n="footer_universe">دنیا</h4>
+          <ul>
+            <li><a href="#comics" data-i18n="footer_comics">کمیک‌ها</a></li>
+            <li><a href="#movies" data-i18n="nav_movies">فیلم‌ها</a></li>
+            <li><a href="#characters" data-i18n="nav_characters">شخصیت‌ها</a></li>
+            <li><a href="#articles" data-i18n="nav_articles">مقالات</a></li>
+            <li><a href="#team" data-i18n="nav_team">تیم</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4 data-i18n="footer_newsletter">خبرنامه</h4>
+          <p data-i18n="footer_newsletter_desc">آخرین اخبار دنیا را مستقیم در ایمیل خود دریافت کنید.</p>
+          <form class="newsletter-form" id="newsletterForm">
+            <input type="email" data-i18n-placeholder="footer_email_placeholder" placeholder="ایمیل شما" id="newsletterEmail" aria-label="Email for newsletter" />
+            <button type="submit" data-i18n="footer_subscribe">عضویت</button>
+          </form>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span data-i18n="footer_copy">&copy; ۲۰۲۶ DEADVERSE. تمامی حقوق محفوظ است.</span> &nbsp;|&nbsp;
+        <span data-i18n="footer_dev">توسعه یافته توسط</span>
+        <a href="https://nitson.ir" target="_blank" rel="noopener noreferrer">NITSON</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // ============================================================
+    // TRANSLATIONS
+    // ============================================================
+    const translations = {
+      fa: {
+        nav_home: "خانه", nav_marvel: "مارول", nav_dc: "دی‌سی",
+        nav_movies: "فیلم‌ها", nav_characters: "شخصیت‌ها",
+        nav_articles: "مقالات", nav_about: "درباره ما", nav_contact: "تماس",
+        nav_team: "تیم",
+        hero_sub: "وارد دنیای ابرقهرمانان شوید",
+        hero_desc: "به دنیای حماسی مارول و دی‌سی شیرجه بزنید — کمیک‌ها، فیلم‌ها، شخصیت‌ها و داستان‌هایی که نسل‌ها را تعریف کرده‌اند.",
+        hero_btn1: "کاوش کمیک‌ها", hero_btn2: "مشاهده شخصیت‌ها",
+        comics_title: "کتاب‌های کمیک",
+        comics_sub: "بزرگ‌ترین داستان‌های تاریخ — از مارول و دی‌سی.",
+        articles_title: "آخرین مقالات",
+        articles_sub: "از دل دنیا — اخبار، نقدها و بررسی‌های عمیق.",
+        cat_all: "همه", cat_marvel: "مارول", cat_dc: "دی‌سی",
+        cat_movies: "فیلم‌ها", cat_characters: "شخصیت‌ها",
+        cat_comics: "کمیک‌ها", cat_news: "اخبار",
+        movies_title: "فیلم‌ها",
+        movies_sub: "فیلم‌های پرفروش دنیای مارول و دی‌سی.",
+        characters_title: "شخصیت‌ها",
+        characters_sub: "قهرمانان و تبهکارانی که جهان را شکل می‌دهند.",
+        about_title: "درباره DEADVERSE",
+        about_text: "DEADVERSE مقصدی برتر برای طرفداران دنیای مارول و دی‌سی است. ما آخرین اخبار کمیک‌ها، فیلم‌ها، شخصیت‌ها و داستان‌هایی که نسل‌ها ابرقهرمان را تعریف کرده‌اند به شما می‌رسانیم. تیم ما متعهد است تحلیل‌های عمیق، اخبار فوری و جامعه‌ای که هر طرفداری در آن جای دارد را ارائه دهد. به دنیا خوش آمدید.",
+        team_title: "با تیم ما آشنا شوید",
+        team_sub: "ذهن‌های پشت این دنیا.",
+        contact_title: "با تیم ما تماس بگیرید",
+        contact_sub: "سوال یا بازخوردی دارید؟ خوشحال می‌شویم بشنویم.",
+        form_name: "نام شما", form_email: "ایمیل شما",
+        form_subject: "موضوع", form_message: "پیام شما",
+        form_send: "ارسال پیام",
+        form_success: "✓ پیام شما با موفقیت ارسال شد!",
+        err_name: "لطفاً نام خود را وارد کنید.",
+        err_email: "لطفاً یک ایمیل معتبر وارد کنید.",
+        err_subject: "لطفاً موضوع را وارد کنید.",
+        err_message: "لطفاً پیام خود را وارد کنید.",
+        footer_about: "دروازه شما به دنیای مارول و دی‌سی. کمیک‌ها، فیلم‌ها، شخصیت‌ها و داستان‌هایی که اهمیت دارند.",
+        footer_nav: "ناوبری", footer_universe: "دنیا",
+        footer_comics: "کمیک‌ها",
+        footer_newsletter: "خبرنامه",
+        footer_newsletter_desc: "آخرین اخبار دنیا را مستقیم در ایمیل خود دریافت کنید.",
+        footer_email_placeholder: "ایمیل شما",
+        footer_subscribe: "عضویت",
+        footer_copy: "© ۲۰۲۶ DEADVERSE. تمامی حقوق محفوظ است.",
+        footer_dev: "توسعه یافته توسط",
+        search_placeholder: "جستجو در کمیک‌ها، فیلم‌ها، شخصیت‌ها، مقالات...",
+        search_empty: "نتیجه‌ای برای",
+        search_empty2: "پیدا نشد",
+        lang_switch: "EN",
+        comic_readmore: "بیشتر بخوانید",
+        char_view: "مشاهده پروفایل",
+        article_readmore: "بیشتر بخوانید",
+        team_roles: ["سردبیر", "نویسنده ارشد", "منتقد فیلم", "مدیر جامعه", "مدیر خلاق"],
+        team_descs: [
+          "طرفدار دیرینه کمیک و علاقه‌مند به داستان‌سرایی.",
+          "مارول و دی‌سی را با بینش عمیق صنعتی پوشش می‌دهد.",
+          "از سال ۲۰۰۸ هر فیلم ابرقهرمانی را نقد کرده است.",
+          "جامعه DEADVERSE را در پلتفرم‌های مختلف به هم متصل می‌کند.",
+          "هویت بصری DEADVERSE را شکل می‌دهد."
+        ],
+        comic_descs: [
+          "داستان افسانه‌ای فرانک میلر درباره بازگشت بتمن سالخورده برای نجات گاتهام.",
+          "تانوس دستکش بی‌نهایت را به دست می‌گیرد و قهرمانان جهان برای متوقف کردن او متحد می‌شوند.",
+          "اثری که ژانر ابرقهرمانی را از هم می‌پاشد و کمیک را برای همیشه تغییر می‌دهد.",
+          "قهرمانان بر سر ثبت‌نام با هم درگیر می‌شوند و کاپیتان آمریکا و آیرون من انتقام‌جویان را تقسیم می‌کنند.",
+          "داستان قطعی خاستگاه بتمن و روزهای اولیه جیم گوردون در گاتهام.",
+          "داستانی تکان‌دهنده از اسپایدرمن که کراون می‌خواهد خود را شکارچی نهایی ثابت کند."
+        ],
+        article_descs: [
+          "ساگای مولتی‌ورس در حال ساختن چیزی عظیم است. اینجا هر چیزی که تاکنون تأیید شده را می‌بینید.",
+          "دنیای دی‌سی جیمز گان سرانجام شکل می‌گیرد — و امیدوارکننده به نظر می‌رسد.",
+          "سفری آشفته، خنده‌دار و به‌طور شگفت‌انگیزی صمیمانه در مولتی‌ورس.",
+          "از تانوس تا جوکر، ما نمادین‌ترین شخصیت‌های شرور کمیک‌ها را رتبه‌بندی می‌کنیم.",
+          "انتخاب‌های ما برای نوآورانه‌ترین و زیباترین کمیک‌های سال.",
+          "با وجود شایعات، این ژانر همچنان تکامل می‌یابد و مخاطبان سراسر جهان را مجذوب می‌کند.",
+          "از قهرمان نوجوان تا انتقام‌جوی کارکشته — سفر پیتر پارکر را دنبال کنید.",
+          "آینده سینمایی دایانا پرینس در دنیای جدید دی‌سی چیست؟ ما بررسی می‌کنیم."
+        ],
+        movie_descs: [
+          "پایان حماسی ساگای بی‌نهایت.",
+          "جوکر هیث لجر ژانر ابرقهرمانی را بازتعریف می‌کند.",
+          "هرج‌ومرج مولتی‌ورسی سه مرد عنکبوتی را کنار هم می‌آورد.",
+          "روایتی نوآر و کارآگاهی از شوالیه تاریکی.",
+          "خداحافظی احساسی با تیم کیهانی محبوب.",
+          "داستان خاستگاه تاریک و شخصیت‌محور بی‌مانند.",
+          "نقطه عطف فرهنگی و ماجراجویی هیجان‌انگیز ابرقهرمانی.",
+          "داستان خاستگاه دیانا امید و قدرت را به DCEU می‌آورد."
+        ],
+        char_descs: [
+          "قهرمان محله با قدرت‌های عنکبوتی.",
+          "شوالیه تاریکی گاتهام، کارآگاه استاد.",
+          "نابغه میلیاردر در زره پوش پیشرفته.",
+          "شاهزاده جنگجوی آمازونی با قدرت الهی.",
+          "تایتان دیوانه که تعادل را از طریق نابودی می‌جوید.",
+          "شاهزاده دلقک جنایت — تجسم هرج‌ومرج.",
+          "انتقام‌جوی اول، نماد امید و عدالت.",
+          "آخرین پسر کریپتون، بزرگ‌ترین محافظ زمین."
+        ]
+      },
+      en: {
+        nav_home: "Home", nav_marvel: "Marvel", nav_dc: "DC",
+        nav_movies: "Movies", nav_characters: "Characters",
+        nav_articles: "Articles", nav_about: "About Us", nav_contact: "Contact",
+        nav_team: "Team",
+        hero_sub: "ENTER THE UNIVERSE OF HEROES",
+        hero_desc: "Dive into the epic worlds of Marvel & DC — comics, movies, characters, and the stories that define a generation of heroes.",
+        hero_btn1: "Explore Comics", hero_btn2: "View Characters",
+        comics_title: "Comic Books",
+        comics_sub: "The greatest stories ever told — from Marvel and DC.",
+        articles_title: "Latest Articles",
+        articles_sub: "From the universe — news, reviews, and deep dives.",
+        cat_all: "All", cat_marvel: "Marvel", cat_dc: "DC",
+        cat_movies: "Movies", cat_characters: "Characters",
+        cat_comics: "Comics", cat_news: "News",
+        movies_title: "Movies",
+        movies_sub: "Blockbusters from the Marvel and DC universes.",
+        characters_title: "Characters",
+        characters_sub: "Heroes and villains who shape the universe.",
+        about_title: "About DEADVERSE",
+        about_text: "DEADVERSE is a premier destination for fans of the Marvel and DC universes. We bring you the latest on comics, movies, characters, and the stories that define generations of heroes. Our team is dedicated to delivering in-depth analysis, breaking news, and a community where every fan belongs. Welcome to the universe.",
+        team_title: "Meet Our Team",
+        team_sub: "The minds behind the universe.",
+        contact_title: "Contact Our Team",
+        contact_sub: "Have a question or feedback? We'd love to hear from you.",
+        form_name: "Your Name", form_email: "Your Email",
+        form_subject: "Subject", form_message: "Your Message",
+        form_send: "Send Message",
+        form_success: "✓ Your message has been sent successfully!",
+        err_name: "Please enter your name.",
+        err_email: "Please enter a valid email.",
+        err_subject: "Please enter a subject.",
+        err_message: "Please enter a message.",
+        footer_about: "Your gateway to the Marvel and DC universe. Comics, movies, characters, and the stories that matter.",
+        footer_nav: "Navigate", footer_universe: "Universe",
+        footer_comics: "Comics",
+        footer_newsletter: "Newsletter",
+        footer_newsletter_desc: "Get the latest from the universe straight to your inbox.",
+        footer_email_placeholder: "Your email",
+        footer_subscribe: "Subscribe",
+        footer_copy: "© 2026 DEADVERSE. All rights reserved.",
+        footer_dev: "Developed by",
+        search_placeholder: "Search comics, movies, characters, articles...",
+        search_empty: "No results found for",
+        search_empty2: "",
+        lang_switch: "FA",
+        comic_readmore: "Read More",
+        char_view: "View Profile",
+        article_readmore: "Read More",
+        team_roles: ["Editor-in-Chief", "Senior Writer", "Film Critic", "Community Manager", "Creative Director"],
+        team_descs: [
+          "Lifelong comic fan and storytelling enthusiast.",
+          "Covers Marvel and DC with deep industry insight.",
+          "Reviews every superhero movie since 2008.",
+          "Connects the Deadverse community across platforms.",
+          "Shapes the visual identity of the Deadverse."
+        ],
+        comic_descs: [
+          "Frank Miller's legendary tale of an aging Batman returning to save Gotham.",
+          "Thanos wields the Infinity Gauntlet and the universe's heroes unite to stop him.",
+          "A deconstruction of the superhero genre that redefined comics forever.",
+          "Heroes clash over registration as Captain America and Iron Man split the Avengers.",
+          "The definitive origin story of Batman and Jim Gordon's early days in Gotham.",
+          "A haunting Spider-Man story where Kraven seeks to prove himself as the ultimate hunter."
+        ],
+        article_descs: [
+          "The Multiverse Saga is building toward something massive. Here's everything confirmed so far.",
+          "James Gunn's DC Universe is finally taking shape — and it looks promising.",
+          "A chaotic, hilarious, and surprisingly heartfelt ride through the multiverse.",
+          "From Thanos to Joker, we rank the most iconic antagonists in comics.",
+          "Our picks for the most groundbreaking and beautifully crafted comics of the year.",
+          "Despite rumors, the genre continues to evolve and captivate audiences worldwide.",
+          "From teenage hero to seasoned Avenger — tracking Peter Parker's journey.",
+          "What's next for Diana Prince in the new DC Universe? We break it down."
+        ],
+        movie_descs: [
+          "The epic conclusion to the Infinity Saga.",
+          "Heath Ledger's Joker redefines the superhero genre.",
+          "Multiversal chaos brings three Spider-Men together.",
+          "A noir-driven, detective-focused take on the Dark Knight.",
+          "An emotional farewell to the beloved cosmic team.",
+          "A dark, character-driven origin story unlike any other.",
+          "A cultural milestone and a thrilling superhero adventure.",
+          "Diana's origin story brings hope and power to the DCEU."
+        ],
+        char_descs: [
+          "Friendly neighborhood hero with spider-powers.",
+          "The Dark Knight of Gotham, master detective.",
+          "Genius billionaire in a high-tech suit of armor.",
+          "Amazonian warrior princess with divine strength.",
+          "The Mad Titan seeking balance through destruction.",
+          "The Clown Prince of Crime — chaos incarnate.",
+          "The First Avenger, a symbol of hope and justice.",
+          "The Last Son of Krypton, Earth's greatest protector."
+        ]
+      }
+    };
+
+    // ============================================================
+    // DATA (titles stay bilingual; descriptions generated per lang)
+    // ============================================================
+    const comicsData = [
+      { title_fa: "بازگشت شوالیه تاریکی", title_en: "The Dark Knight Returns", publisher: "DC", year: 1986 },
+      { title_fa: "دستکش بی‌نهایت", title_en: "Infinity Gauntlet", publisher: "Marvel", year: 1991 },
+      { title_fa: "واچمن", title_en: "Watchmen", publisher: "DC", year: 1986 },
+      { title_fa: "جنگ داخلی", title_en: "Civil War", publisher: "Marvel", year: 2006 },
+      { title_fa: "بتمن: سال اول", title_en: "Batman: Year One", publisher: "DC", year: 1987 },
+      { title_fa: "آخرین شکار کراون", title_en: "Kraven's Last Hunt", publisher: "Marvel", year: 1987 }
+    ];
+
+    const articlesData = [
+      { title_fa: "فاز ۶ مارول: آنچه می‌دانیم", title_en: "Marvel's Phase 6: What We Know", cat: "marvel", date_fa: "ژانویه ۲۰۲۶", date_en: "Jan 2026" },
+      { title_fa: "دنیای جدید دی‌سی: شروعی تازه", title_en: "The New DCU: A Fresh Start", cat: "dc", date_fa: "فوریه ۲۰۲۶", date_en: "Feb 2026" },
+      { title_fa: "نقد ددپول و ولورین", title_en: "Deadpool & Wolverine Review", cat: "movies", date_fa: "مارس ۲۰۲۶", date_en: "Mar 2026" },
+      { title_fa: "۱۰ شرور برتر تاریخ", title_en: "Top 10 Villains of All Time", cat: "characters", date_fa: "آوریل ۲۰۲۶", date_en: "Apr 2026" },
+      { title_fa: "بهترین کمیک‌های ۲۰۲۵", title_en: "The Best Comics of 2025", cat: "comics", date_fa: "مه ۲۰۲۶", date_en: "May 2026" },
+      { title_fa: "خستگی ابرقهرمانی؟ اصلاً", title_en: "Superhero Fatigue? Not So Fast", cat: "news", date_fa: "ژوئن ۲۰۲۶", date_en: "Jun 2026" },
+      { title_fa: "تکامل اسپایدرمن", title_en: "The Evolution of Spider-Man", cat: "marvel", date_fa: "ژوئیه ۲۰۲۶", date_en: "Jul 2026" },
+      { title_fa: "آینده سینمایی واندر وومن", title_en: "Wonder Woman's Cinematic Future", cat: "dc", date_fa: "اوت ۲۰۲۶", date_en: "Aug 2026" }
+    ];
+
+    const moviesData = [
+      { name_fa: "انتقام‌جویان: پایان بازی", name_en: "Avengers: Endgame", year: 2019, rating: 8.4, universe: "Marvel" },
+      { name_fa: "شوالیه تاریکی", name_en: "The Dark Knight", year: 2008, rating: 9.0, universe: "DC" },
+      { name_fa: "مرد عنکبوتی: راهی به خانه نیست", name_en: "Spider-Man: No Way Home", year: 2021, rating: 8.2, universe: "Marvel" },
+      { name_fa: "بتمن", name_en: "The Batman", year: 2022, rating: 7.8, universe: "DC" },
+      { name_fa: "نگهبانان کهکشان جلد ۳", name_en: "Guardians of the Galaxy Vol. 3", year: 2023, rating: 7.9, universe: "Marvel" },
+      { name_fa: "جوکر", name_en: "Joker", year: 2019, rating: 8.4, universe: "DC" },
+      { name_fa: "پلنگ سیاه", name_en: "Black Panther", year: 2018, rating: 7.3, universe: "Marvel" },
+      { name_fa: "واندر وومن", name_en: "Wonder Woman", year: 2017, rating: 7.4, universe: "DC" }
+    ];
+
+    const charactersData = [
+      { name_fa: "اسپایدرمن", name_en: "Spider-Man", universe: "Marvel", type: "hero" },
+      { name_fa: "بتمن", name_en: "Batman", universe: "DC", type: "hero" },
+      { name_fa: "آیرون من", name_en: "Iron Man", universe: "Marvel", type: "hero" },
+      { name_fa: "واندر وومن", name_en: "Wonder Woman", universe: "DC", type: "hero" },
+      { name_fa: "تانوس", name_en: "Thanos", universe: "Marvel", type: "villain" },
+      { name_fa: "جوکر", name_en: "Joker", universe: "DC", type: "villain" },
+      { name_fa: "کاپیتان آمریکا", name_en: "Captain America", universe: "Marvel", type: "hero" },
+      { name_fa: "سوپرمن", name_en: "Superman", universe: "DC", type: "hero" }
+    ];
+
+    const teamData = [
+      { name_fa: "الکس رید", name_en: "Alex Reed", initials: "AR" },
+      { name_fa: "مایا چن", name_en: "Maya Chen", initials: "MC" },
+      { name_fa: "جردن بلیک", name_en: "Jordan Blake", initials: "JB" },
+      { name_fa: "سام تورس", name_en: "Sam Torres", initials: "ST" },
+      { name_fa: "رایلی کوین", name_en: "Riley Quinn", initials: "RQ" }
+    ];
+
+    // ============================================================
+    // STATE
+    // ============================================================
+    let currentLang = 'fa';
+    let aboutStarted = false;
+    const aboutTexts = {
+      fa: translations.fa.about_text,
+      en: translations.en.about_text
+    };
+
+    // ============================================================
+    // RENDERERS
+    // ============================================================
+    function renderComics() {
+      const t = translations[currentLang];
+      const track = document.getElementById('comicTrack');
+      track.innerHTML = comicsData.map((c, i) => {
+        const title = currentLang === 'fa' ? c.title_fa : c.title_en;
+        const desc = t.comic_descs[i];
+        return `
+          <div class="comic-card">
+            <div class="card-img"><span class="img-placeholder">${c.publisher === 'Marvel' ? 'M' : 'DC'}</span></div>
+            <div class="card-body">
+              <h3>${title}</h3>
+              <div class="comic-meta">
+                <span class="${c.publisher === 'Marvel' ? 'tag-marvel' : 'tag-dc'}">${c.publisher}</span>
+                <span class="tag-year">${c.year}</span>
+              </div>
+              <p>${desc}</p>
+              <a href="#" class="btn btn-outline">${t.comic_readmore}</a>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderArticles() {
+      const t = translations[currentLang];
+      const grid = document.getElementById('articleGrid');
+      const activeCat = document.querySelector('#categoryBar .cat-btn.active').dataset.cat;
+      grid.innerHTML = articlesData.map((a, i) => {
+        const title = currentLang === 'fa' ? a.title_fa : a.title_en;
+        const date = currentLang === 'fa' ? a.date_fa : a.date_en;
+        const desc = t.article_descs[i];
+        const catLabel = t['cat_' + a.cat] || a.cat;
+        const catClass = a.cat === 'marvel' ? 'tag-marvel' : a.cat === 'dc' ? 'tag-dc' : 'tag-year';
+        const hidden = (activeCat !== 'all' && a.cat !== activeCat) ? 'hidden' : '';
+        return `
+          <article class="article-card reveal ${hidden}" data-cat="${a.cat}">
+            <div class="art-img"><span class="img-placeholder">${catLabel.toUpperCase()}</span></div>
+            <div class="art-body">
+              <div class="art-meta">
+                <span class="${catClass}">${catLabel}</span>
+                <span class="tag-year">${date}</span>
+              </div>
+              <h3>${title}</h3>
+              <p>${desc}</p>
+              <a href="#" class="btn btn-outline" style="padding:6px 16px; font-size:0.75rem;">${t.article_readmore}</a>
+            </div>
+          </article>
+        `;
+      }).join('');
+      observeReveals();
+    }
+
+    function renderMovies() {
+      const t = translations[currentLang];
+      const grid = document.getElementById('movieGrid');
+      grid.innerHTML = moviesData.map((m, i) => {
+        const name = currentLang === 'fa' ? m.name_fa : m.name_en;
+        const desc = t.movie_descs[i];
+        return `
+          <div class="movie-card reveal">
+            <div class="mv-img"><span class="img-placeholder">${m.universe === 'Marvel' ? 'MARVEL' : 'DC'}</span></div>
+            <div class="mv-body">
+              <h3>${name}</h3>
+              <div class="mv-meta">
+                <span class="rating">★ ${m.rating}</span>
+                <span class="${m.universe === 'Marvel' ? 'tag-marvel' : 'tag-dc'}" style="font-size:0.68rem; padding:2px 8px;">${m.universe}</span>
+                <span class="tag-year" style="font-size:0.68rem; padding:2px 8px;">${m.year}</span>
+              </div>
+              <p>${desc}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+      observeReveals();
+    }
+
+    function renderCharacters() {
+      const t = translations[currentLang];
+      const grid = document.getElementById('charGrid');
+      grid.innerHTML = charactersData.map((c, i) => {
+        const name = currentLang === 'fa' ? c.name_fa : c.name_en;
+        const desc = t.char_descs[i];
+        return `
+          <div class="char-card reveal">
+            <div class="ch-img"><span class="img-placeholder">${name.charAt(0)}</span></div>
+            <div class="ch-body">
+              <h3>${name}</h3>
+              <div class="ch-universe" style="color: ${c.universe === 'Marvel' ? '#ff6b7a' : '#6ba3ff'}">${c.universe}</div>
+              <p>${desc}</p>
+              <a href="#" class="btn btn-outline">${t.char_view}</a>
+            </div>
+          </div>
+        `;
+      }).join('');
+      observeReveals();
+    }
+
+    function renderTeam() {
+      const t = translations[currentLang];
+      const track = document.getElementById('teamTrack');
+      track.innerHTML = teamData.map((m, i) => {
+        const name = currentLang === 'fa' ? m.name_fa : m.name_en;
+        return `
+          <div class="team-card">
+            <div class="t-avatar">${m.initials}</div>
+            <h3>${name}</h3>
+            <div class="role">${t.team_roles[i]}</div>
+            <p>${t.team_descs[i]}</p>
+            <div class="socials">
+              <a href="#" aria-label="Twitter">𝕏</a>
+              <a href="#" aria-label="LinkedIn">in</a>
+              <a href="#" aria-label="Instagram">◉</a>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ============================================================
+    // SEARCH
+    // ============================================================
+    function buildSearchIndex() {
+      const items = [];
+      comicsData.forEach(c => items.push({
+        title: currentLang === 'fa' ? c.title_fa : c.title_en,
+        type: currentLang === 'fa' ? 'کمیک' : 'Comic'
+      }));
+      articlesData.forEach(a => items.push({
+        title: currentLang === 'fa' ? a.title_fa : a.title_en,
+        type: currentLang === 'fa' ? 'مقاله' : 'Article'
+      }));
+      moviesData.forEach(m => items.push({
+        title: currentLang === 'fa' ? m.name_fa : m.name_en,
+        type: currentLang === 'fa' ? 'فیلم' : 'Movie'
+      }));
+      charactersData.forEach(c => items.push({
+        title: currentLang === 'fa' ? c.name_fa : c.name_en,
+        type: currentLang === 'fa' ? 'شخصیت' : 'Character'
+      }));
+      return items;
+    }
+
+    let searchIndex = buildSearchIndex();
+
+    // ============================================================
+    // APPLY LANGUAGE
+    // ============================================================
+    function applyLanguage(lang) {
+      currentLang = lang;
+      const t = translations[lang];
+
+      // Set body attrs
+      document.body.setAttribute('data-lang', lang);
+      document.body.setAttribute('dir', lang === 'fa' ? 'rtl' : 'ltr');
+      document.documentElement.setAttribute('lang', lang);
+
+      // Update all i18n text
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        if (t[key] !== undefined) el.textContent = t[key];
+      });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.dataset.i18nPlaceholder;
+        if (t[key] !== undefined) el.setAttribute('placeholder', t[key]);
+      });
+
+      // Update lang toggle label
+      document.getElementById('langLabel').textContent = t.lang_switch;
+
+      // Re-render dynamic content
+      renderComics();
+      renderArticles();
+      renderMovies();
+      renderCharacters();
+      renderTeam();
+
+      // Rebuild search index
+      searchIndex = buildSearchIndex();
+
+      // Update about text
+      const aboutEl = document.getElementById('aboutText');
+      aboutEl.innerHTML = '';
+      aboutStarted = false;
+
+      // Reset about observer
+      aboutObserver.disconnect();
+      aboutObserver.observe(aboutEl);
+
+      // Reset sliders
+      comicIndex = 0;
+      teamIndex = 0;
+      setTimeout(() => {
+        updateComicSlider();
+        updateTeamSlider();
+        observeReveals();
+      }, 50);
+
+      // Update search placeholder & results if open
+      const searchResults = document.getElementById('searchResults');
+      searchResults.classList.remove('active');
+      searchResults.innerHTML = '';
+      document.getElementById('searchInput').value = '';
+    }
+
+    // ============================================================
+    // LOADING SCREEN
+    // ============================================================
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        document.getElementById('loader').classList.add('hidden');
+        setTimeout(startHeroTyping, 400);
+      }, 2000);
+    });
+
+    // ============================================================
+    // HERO TYPEWRITER
+    // ============================================================
+    function startHeroTyping() {
+      const el = document.getElementById('heroTitle');
+      const text = 'DEADVERSE';
+      el.textContent = '';
+      el.style.borderRight = '3px solid #e63946';
+      el.style.display = 'inline-block';
+      let i = 0;
+      const interval = setInterval(() => {
+        if (i < text.length) {
+          el.textContent += text[i];
+          i++;
+        } else {
+          clearInterval(interval);
+          setTimeout(() => { el.style.borderRight = 'none'; }, 600);
+        }
+      }, 120);
+    }
+
+    // ============================================================
+    // HEADER SCROLL
+    // ============================================================
+    const header = document.getElementById('header');
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 50) header.classList.add('scrolled');
+      else header.classList.remove('scrolled');
+    }, { passive: true });
+
+    // ============================================================
+    // MOBILE NAV
+    // ============================================================
+    const hamburger = document.getElementById('hamburger');
+    const mobileNav = document.getElementById('mobileNav');
+    const navOverlay = document.getElementById('navOverlay');
+
+    function toggleNav() {
+      const isOpen = mobileNav.classList.contains('open');
+      hamburger.classList.toggle('active');
+      mobileNav.classList.toggle('open');
+      navOverlay.classList.toggle('active');
+      document.body.style.overflow = isOpen ? '' : 'hidden';
+    }
+
+    hamburger.addEventListener('click', toggleNav);
+    navOverlay.addEventListener('click', toggleNav);
+    mobileNav.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        if (mobileNav.classList.contains('open')) toggleNav();
+      });
+    });
+
+    // ============================================================
+    // SLIDERS
+    // ============================================================
+    let comicIndex = 0;
+    let teamIndex = 0;
+
+    function getComicVisibleCount() {
+      if (window.innerWidth <= 768) return 1;
+      if (window.innerWidth <= 1024) return 2;
+      return 3;
+    }
+    function getTeamVisibleCount() {
+      if (window.innerWidth <= 768) return 1;
+      if (window.innerWidth <= 1024) return 3;
+      return 4;
+    }
+
+    function updateComicSlider() {
+      const track = document.getElementById('comicTrack');
+      const cards = track.children;
+      if (!cards.length) return;
+      const visible = getComicVisibleCount();
+      const cardWidth = cards[0].offsetWidth;
+      const gap = 24;
+      const maxIndex = Math.max(0, cards.length - visible);
+      if (comicIndex > maxIndex) comicIndex = maxIndex;
+      if (comicIndex < 0) comicIndex = 0;
+      track.style.transform = `translateX(-${comicIndex * (cardWidth + gap)}px)`;
+    }
+
+    function updateTeamSlider() {
+      const track = document.getElementById('teamTrack');
+      const cards = track.children;
+      if (!cards.length) return;
+      const visible = getTeamVisibleCount();
+      const cardWidth = cards[0].offsetWidth;
+      const gap = 20;
+      const maxIndex = Math.max(0, cards.length - visible);
+      if (teamIndex > maxIndex) teamIndex = maxIndex;
+      if (teamIndex < 0) teamIndex = 0;
+      track.style.transform = `translateX(-${teamIndex * (cardWidth + gap)}px)`;
+    }
+
+    document.getElementById('comicPrev').addEventListener('click', () => {
+      comicIndex = Math.max(0, comicIndex - 1);
+      updateComicSlider();
+    });
+    document.getElementById('comicNext').addEventListener('click', () => {
+      const track = document.getElementById('comicTrack');
+      const maxIndex = Math.max(0, track.children.length - getComicVisibleCount());
+      comicIndex = Math.min(maxIndex, comicIndex + 1);
+      updateComicSlider();
+    });
+    document.getElementById('teamPrev').addEventListener('click', () => {
+      teamIndex = Math.max(0, teamIndex - 1);
+      updateTeamSlider();
+    });
+    document.getElementById('teamNext').addEventListener('click', () => {
+      const track = document.getElementById('teamTrack');
+      const maxIndex = Math.max(0, track.children.length - getTeamVisibleCount());
+      teamIndex = Math.min(maxIndex, teamIndex + 1);
+      updateTeamSlider();
+    });
+
+    // Touch swipe
+    function addTouchSwipe(trackId, onSwipe) {
+      const el = document.getElementById(trackId);
+      let startX = 0;
+      el.addEventListener('touchstart', e => { startX = e.changedTouches[0].screenX; }, { passive: true });
+      el.addEventListener('touchend', e => {
+        const diff = startX - e.changedTouches[0].screenX;
+        if (Math.abs(diff) > 50) onSwipe(diff > 0 ? 1 : -1);
+      }, { passive: true });
+    }
+    addTouchSwipe('comicTrack', dir => {
+      const track = document.getElementById('comicTrack');
+      const maxIndex = Math.max(0, track.children.length - getComicVisibleCount());
+      comicIndex = dir > 0 ? Math.min(maxIndex, comicIndex + 1) : Math.max(0, comicIndex - 1);
+      updateComicSlider();
+    });
+    addTouchSwipe('teamTrack', dir => {
+      const track = document.getElementById('teamTrack');
+      const maxIndex = Math.max(0, track.children.length - getTeamVisibleCount());
+      teamIndex = dir > 0 ? Math.min(maxIndex, teamIndex + 1) : Math.max(0, teamIndex - 1);
+      updateTeamSlider();
+    });
+
+    // ============================================================
+    // SEARCH
+    // ============================================================
+    const searchInput = document.getElementById('searchInput');
+    const searchResults = document.getElementById('searchResults');
+    let debounceTimer;
+
+    searchInput.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        const q = searchInput.value.trim().toLowerCase();
+        if (q.length === 0) {
+          searchResults.classList.remove('active');
+          searchResults.innerHTML = '';
+          return;
+        }
+        const matches = searchIndex.filter(item => item.title.toLowerCase().includes(q)).slice(0, 8);
+        if (matches.length === 0) {
+          searchResults.innerHTML = `<div class="search-empty">${translations[currentLang].search_empty} "${searchInput.value.trim()}" ${translations[currentLang].search_empty2}</div>`;
+        } else {
+          searchResults.innerHTML = matches.map(m => `
+            <div class="search-item">
+              <span class="si-title">${m.title}</span>
+              <span class="si-type">${m.type}</span>
+            </div>
+          `).join('');
+        }
+        searchResults.classList.add('active');
+      }, 200);
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.search-box')) searchResults.classList.remove('active');
+    });
+
+    // ============================================================
+    // CATEGORY FILTER
+    // ============================================================
+    document.getElementById('categoryBar').addEventListener('click', (e) => {
+      const btn = e.target.closest('.cat-btn');
+      if (!btn) return;
+      document.querySelectorAll('#categoryBar .cat-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const cat = btn.dataset.cat;
+      document.querySelectorAll('.article-card').forEach(card => {
+        if (cat === 'all' || card.dataset.cat === cat) card.classList.remove('hidden');
+        else card.classList.add('hidden');
+      });
+    });
+
+    // ============================================================
+    // ABOUT TYPEWRITER
+    // ============================================================
+    function startAboutTyping() {
+      if (aboutStarted) return;
+      aboutStarted = true;
+      const el = document.getElementById('aboutText');
+      const text = aboutTexts[currentLang];
+      el.innerHTML = '';
+      let i = 0;
+      const caret = document.createElement('span');
+      caret.className = 'caret';
+      el.appendChild(caret);
+      const interval = setInterval(() => {
+        if (i < text.length) {
+          caret.before(text[i]);
+          i++;
+        } else {
+          clearInterval(interval);
+          caret.remove();
+        }
+      }, 18);
+    }
+
+    const aboutObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          startAboutTyping();
+          aboutObserver.disconnect();
+        }
+      });
+    }, { threshold: 0.3 });
+
+    // ============================================================
+    // CONTACT FORM
+    // ============================================================
+    document.getElementById('contactForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      let valid = true;
+      const nameGroup = document.getElementById('name').parentElement;
+      const emailGroup = document.getElementById('email').parentElement;
+      const subjectGroup = document.getElementById('subject').parentElement;
+      const messageGroup = document.getElementById('message').parentElement;
+      [nameGroup, emailGroup, subjectGroup, messageGroup].forEach(g => g.classList.remove('invalid'));
+
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const subject = document.getElementById('subject').value.trim();
+      const message = document.getElementById('message').value.trim();
+
+      if (!name) { nameGroup.classList.add('invalid'); valid = false; }
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { emailGroup.classList.add('invalid'); valid = false; }
+      if (!subject) { subjectGroup.classList.add('invalid'); valid = false; }
+      if (!message) { messageGroup.classList.add('invalid'); valid = false; }
+
+      if (valid) {
+        document.getElementById('formSuccess').classList.add('show');
+        document.getElementById('contactForm').reset();
+        setTimeout(() => document.getElementById('formSuccess').classList.remove('show'), 4000);
+      }
+    });
+
+    // ============================================================
+    // NEWSLETTER
+    // ============================================================
+    document.getElementById('newsletterForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const input = document.getElementById('newsletterEmail');
+      if (input.value.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value.trim())) {
+        input.value = '';
+        input.placeholder = currentLang === 'fa' ? '✓ عضو شدید!' : '✓ Subscribed!';
+        setTimeout(() => {
+          input.placeholder = translations[currentLang].footer_email_placeholder;
+        }, 3000);
+      } else {
+        input.style.borderColor = '#ff6b7a';
+        setTimeout(() => { input.style.borderColor = ''; }, 1500);
+      }
+    });
+
+    // ============================================================
+    // SCROLL REVEAL
+    // ============================================================
+    let revealObserver;
+    function observeReveals() {
+      if (revealObserver) revealObserver.disconnect();
+      revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            revealObserver.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+      document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+    }
+
+    // ============================================================
+    // RESIZE
+    // ============================================================
+    window.addEventListener('resize', () => {
+      updateComicSlider();
+      updateTeamSlider();
+    });
+
+    // ============================================================
+    // AUTO-PLAY
+    // ============================================================
+    setInterval(() => {
+      const track = document.getElementById('comicTrack');
+      if (!track.children.length) return;
+      const maxIndex = Math.max(0, track.children.length - getComicVisibleCount());
+      comicIndex = comicIndex >= maxIndex ? 0 : comicIndex + 1;
+      updateComicSlider();
+    }, 5000);
+
+    setInterval(() => {
+      const track = document.getElementById('teamTrack');
+      if (!track.children.length) return;
+      const maxIndex = Math.max(0, track.children.length - getTeamVisibleCount());
+      teamIndex = teamIndex >= maxIndex ? 0 : teamIndex + 1;
+      updateTeamSlider();
+    }, 6000);
+
+    // ============================================================
+    // LANG TOGGLE
+    // ============================================================
+    document.getElementById('langToggle').addEventListener('click', () => {
+      const newLang = currentLang === 'fa' ? 'en' : 'fa';
+      applyLanguage(newLang);
+      // Close mobile nav if open
+      if (mobileNav.classList.contains('open')) toggleNav();
+    });
+
+    // ============================================================
+    // ACTIVE NAV ON SCROLL
+    // ============================================================
+    const sections = document.querySelectorAll('section[id]');
+    window.addEventListener('scroll', () => {
+      let current = '';
+      sections.forEach(section => {
+        const top = section.offsetTop - 120;
+        if (window.scrollY >= top) current = section.getAttribute('id');
+      });
+      document.querySelectorAll('nav.desktop-nav a').forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === '#' + current) link.classList.add('active');
+      });
+    }, { passive: true });
+
+    // ============================================================
+    // INIT
+    // ============================================================
+    applyLanguage('fa');
+    setTimeout(() => {
+      aboutObserver.observe(document.getElementById('aboutText'));
+      updateComicSlider();
+      updateTeamSlider();
+      observeReveals();
+    }, 100);
+
+  </script>
+</body>
+</html>
