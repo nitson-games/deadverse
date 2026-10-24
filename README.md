@@ -88,7 +88,7 @@ npm run db:setup
 
 ```bash
 npm run dev        # http://127.0.0.1:3000/api/health
-npm test           # ۵۵ تست لایه‌ی HTTP
+npm test           # ۵۶ تست لایه‌ی HTTP
 npm run verify     # ۳۵ بررسی کامل روی دیتابیس واقعی (SQL، قیدها، CRUD، بکاپ)
 ```
 
@@ -102,7 +102,7 @@ npm run verify     # ۳۵ بررسی کامل روی دیتابیس واقعی (
 
 `config.js` روی این آدرس‌ها خودکار API لوکال را انتخاب می‌کند. فایلی را با `file://` یا Live Server (پورت ۵۵۰۰) باز نکن: آن حالت همان صفحه را به API وصل می‌کند ولی آدرس `/admin` را ندارد و گیج‌کننده می‌شود.
 
-سرور لوکال عمداً **فقط چند فایل نام‌برده** را سرو می‌کند (`server/pages.js`: `index.html` در `/`، `admin.html` در `/admin`، `config.js`، `favicon.svg`، `og-cover.jpg`). هیچ پوشه‌ای لیست نمی‌شود و `express.static` استفاده نشده، پس `/.env`، `/server/…` و `/node_modules/…` همان‌جا ۴۰۴ می‌دهند — این را `npm run verify` هم چک می‌کند. نسخه‌ی دیپلوی‌شده همین مسیرها را با rewrite در `vercel.json` دارد، پس لوکال و زنده یک رفتار دارند.
+سرور لوکال عمداً **فقط چند فایل نام‌برده** را سرو می‌کند (`server/pages.js`: `index.html` در `/`، `admin.html` در `/admin`، `config.js`، `favicon.svg`، `og-cover.jpg`). هیچ پوشه‌ای لیست نمی‌شود و `express.static` استفاده نشده، پس `/.env`، `/server/…` و `/node_modules/…` همان‌جا ۴۰۴ می‌دهند — این را `npm run verify` هم چک می‌کند. نسخه‌ی دیپلوی‌شده هم **همین لیست** را منتشر می‌کند (`npm run build` فایل‌های `server/pages.js` را به `public/` می‌کپی می‌کند و `/admin` با rewrite به `admin.html` می‌رسد)، پس لوکال و زنده یک رفتار و یک مجموعه‌صفحه دارند.
 
 ## ۴. دیپلوی روی Vercel
 
@@ -114,11 +114,12 @@ curl -s https://deadverse.vercel.app/api/health
 
 اگر نسخه‌ی تازه بالا نیامد، در داشبورد → Projects → Deployments لاگ build را بخوان (معمولاً خطای `runtime` یا یک متغیر Environment Variables جاافتاده).
 
-**اگر روزی از صفر پروژه‌ی دیگری بسازی:** Import ریپو → Framework: **Other**، Build/Output: **خالی** — هر مسیر `/api/*` با `vercel.json` به همان تابع می‌رسد؛ ریپو باید `api/`، `server/`، `config.js`، `vercel.json` و `package.json` را داشته باشد.
+**اگر روزی از صفر پروژه‌ی دیگری بسازی:** Import ریپو → Framework: **Other**، Build Command: `npm run build` و Output Directory: `public` (هر دو در `vercel.json` نوشته شده، پس داشبورد خودشان را پر می‌کند) — هر مسیر `/api/*` با همان `vercel.json` به تابع می‌رسد؛ ریپو باید `api/`، `server/`، `config.js`، `vercel.json` و `package.json` را داشته باشد. آدرس production با `POST /v9/projects/<id>/domains` روی API ورسل به هر ساب‌دامنه‌ی آزاد `*.vercel.app` وصل می‌شود (کاری که `deadverse.vercel.app` انجام داد؛ دامنه‌ی بلندتر حالا ۳۰۸ به آن می‌دهد).
 
 نکته‌هایی که موقع دیپلوی این پروژه به آن بر خوردیم:
 - در `vercel.json` **نویس `"runtime": "nodejs20.x"` ممنوع**؛ build با خطای `Function Runtimes must have a valid version` می‌میرد. نسخه‌ی Node را Vercel انتخاب می‌کند (و `engines.node` در `package.json` راهنمای آن است). `memory` هم با صورت‌حساب Fluid Compute نادیده گرفته می‌شود.
 - `.vercelignore` جلوی آپلود `.env*`، `tests/` و پوشه‌های ابزار را می‌گیرد. بعد از دیپلوی چک کن: `curl -I https://deadverse.vercel.app/.env` باید **۴۰۴** بدهد.
+- ریشه‌ی استاتیک دیپلوی **`public/` است، نه کل ریپو**. `outputDirectory: "."` باعث می‌شد `/server/app.js` و `/server/routes.js` مستقیم دانلود شوند (کد منبع لو می‌رفت؛ راز نبود، چون رمزها در Environment Variable هاست). `npm run build` فقط فایل‌های همان لیست `server/pages.js` را در `public/` می‌گذارد، پس لوکال و پروداکشن یک مجموعه‌صفحه دارند و `npm run verify` هم `/server/app.js` را بین مسیرهای ۴۰۴ چک می‌کند.
 - «Deployment Protection» روی پروژه روشن است ولی فقط **preview URL**ها را قفل می‌کند؛ آدرس production برای بازدیدکننده‌ی ناشناس باز است (با `curl -i https://deadverse.vercel.app/api/health` تأییدشده).
 
 متغیرهای لازم روی Vercel (محیط Production):
@@ -214,7 +215,7 @@ favicon.svg           آیکون تب مرورگر
 og-cover.jpg          تصویر اشتراک‌گذاری در شبکه‌های اجتماعی (1200×686)
 config.js             client مشترک: آدرس API، fetch، توکن، خطاهای فیلدی
 api/index.js          ورودی serverless Vercel (Express app)
-vercel.json           rewrite /api/* و /admin → admin.html + ریدایرکت /adminpanel.html (بدون `runtime`؛ نسخه Node را Vercel انتخاب می‌کند)
+vercel.json           build → public/، rewrite /api/* و /admin → admin.html + ریدایرکت /adminpanel.html (بدون `runtime`؛ نسخه Node را Vercel انتخاب می‌کند)
 .vercelignore         .env*، tests/ و پوشه‌های ابزار آپلود نمی‌شوند
 server/
   app.js              Express + CORS + هدرهای امنیتی + error handler
@@ -229,7 +230,9 @@ server/
   rate-limit.js       پنجره‌ی ثابت در حافظه
   migrate.js          npm run db:setup
   verify.js           npm run verify
-tests/                ۵۵ تست HTTP با fake repo (بدون نیاز به دیتابیس)
+scripts/
+  build-site.js       npm run build — کپی صفحه‌های فهرست‌شده در public/ (ریشه‌ی استاتیک دیپلوی)
+tests/                ۵۶ تست HTTP با fake repo (بدون نیاز به دیتابیس)
 .env.example          الگوی متغیرها
 ```
 

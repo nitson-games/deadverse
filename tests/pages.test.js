@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
 import request from 'supertest';
 import { boot } from './helpers.js';
+import { PAGES } from '../server/pages.js';
 
 function fakeSiteDir() {
   const dir = mkdtempSync(join(tmpdir(), 'deadverse-pages-'));
@@ -74,5 +75,11 @@ describe('local page serving', () => {
     assert.equal((await request(app).get('/api/health')).status, 200);
     assert.equal((await request(app).get('/')).status, 404);
     assert.equal((await request(app).get('/admin')).status, 404);
+  });
+
+  it('lists only files that exist in the repo, so the deploy build cannot miss one', () => {
+    for (const file of new Set(PAGES.values())) {
+      assert.ok(existsSync(new URL(`../${file}`, import.meta.url)), `${file} is on the page list but missing from the repo`);
+    }
   });
 });

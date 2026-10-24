@@ -5,8 +5,12 @@ import { join } from 'node:path';
  * other file on disk is reachable — `express.static(root)` would publish
  * `.env`, `server/` and `node_modules/` over HTTP. Content types come from the
  * extension, because only these names can be read at all.
+ *
+ * The deployed copy publishes exactly the files in this table (see
+ * `scripts/build-site.js`), so a page can never exist locally and be missing
+ * in production, or the other way round.
  */
-const PAGES = new Map([
+export const PAGES = new Map([
   ['/', 'index.html'],
   ['/index.html', 'index.html'],
   ['/admin', 'admin.html'],
