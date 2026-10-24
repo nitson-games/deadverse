@@ -293,12 +293,20 @@ async function main() {
     await check('تنظیمات سایت ذخیره و به مقدار قبلی برگشت', async () => {
       const before = await call('/admin/site', { token });
       assert.equal(before.status, 200);
-      const probe = { ...before.body, heroSub_fa: `${before.body.heroSub_fa}·verify` };
+      const probe = {
+        ...before.body,
+        heroSub_fa: `${before.body.heroSub_fa}·verify`,
+        socialX: 'https://x.com/deadverse'
+      };
       const saved = await call('/admin/site', { method: 'PUT', token, body: probe });
       assert.equal(saved.status, 200);
       assert.equal(saved.body.heroSub_fa, probe.heroSub_fa);
+      assert.equal(saved.body.socialX, 'https://x.com/deadverse');
+      const publicSite = await call('/bootstrap');
+      assert.equal(publicSite.body.site.socialX, 'https://x.com/deadverse');
       const restored = await call('/admin/site', { method: 'PUT', token, body: before.body });
       assert.equal(restored.body.heroSub_fa, before.body.heroSub_fa);
+      assert.equal(restored.body.socialX, before.body.socialX);
     });
 
     await check('امضای آپلود Cloudinary (در صورت پیکربندی بودن)', async () => {

@@ -22,7 +22,11 @@ export function siteToClient(site) {
     btn1_fa: site.btn1_fa,
     btn1_en: site.btn1_en,
     btn2_fa: site.btn2_fa,
-    btn2_en: site.btn2_en
+    btn2_en: site.btn2_en,
+    socialX: site.social_x,
+    socialInstagram: site.social_instagram,
+    socialYoutube: site.social_youtube,
+    socialDiscord: site.social_discord
   };
 }
 

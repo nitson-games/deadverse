@@ -4,6 +4,34 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DEADVERSE • دنیای ابرقهرمانان</title>
+  <meta name="description" content="DEADVERSE — اخبار، کمیک‌ها، فیلم‌ها، شخصیت‌ها و مقالات دنیای مارول و دی‌سی به فارسی و انگلیسی." />
+  <meta name="theme-color" content="#050508" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="canonical" href="https://deadverse-eight.vercel.app/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="DEADVERSE" />
+  <meta property="og:title" content="DEADVERSE • دنیای ابرقهرمانان" />
+  <meta property="og:description" content="اخبار، کمیک‌ها، فیلم‌ها و شخصیت‌های دنیای مارول و دی‌سی." />
+  <meta property="og:url" content="https://deadverse-eight.vercel.app/" />
+  <meta property="og:locale" content="fa_IR" />
+  <meta property="og:locale:alternate" content="en_US" />
+  <meta property="og:image" content="https://deadverse-eight.vercel.app/og-cover.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="686" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="DEADVERSE • دنیای ابرقهرمانان" />
+  <meta name="twitter:description" content="اخبار، کمیک‌ها، فیلم‌ها و شخصیت‌های دنیای مارول و دی‌سی." />
+  <meta name="twitter:image" content="https://deadverse-eight.vercel.app/og-cover.jpg" />
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "DEADVERSE",
+      "url": "https://deadverse-eight.vercel.app/",
+      "inLanguage": ["fa", "en"],
+      "description": "سایت طرفداران دنیای مارول و دی‌سی: کمیک، فیلم، شخصیت و مقاله."
+    }
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Vazirmatn:wght@300;400;600;700;900&display=swap" rel="stylesheet" />
@@ -945,7 +973,7 @@
   <!-- HEADER -->
   <header id="header">
     <div class="container header-inner">
-      <a href="#" class="logo">DEAD<span>VERSE</span></a>
+      <a href="#hero" class="logo">DEAD<span>VERSE</span></a>
       <nav class="desktop-nav" id="desktopNav">
         <a href="#hero" class="active" data-i18n="nav_home">خانه</a>
         <a href="#comics" data-i18n="nav_marvel">مارول</a>
@@ -1118,14 +1146,9 @@
     <div class="container">
       <div class="footer-grid">
         <div class="footer-col">
-          <a href="#" class="logo" style="font-size:1.6rem; display:inline-block; margin-bottom:14px;">DEAD<span>VERSE</span></a>
+          <a href="#hero" class="logo" style="font-size:1.6rem; display:inline-block; margin-bottom:14px;">DEAD<span>VERSE</span></a>
           <p data-i18n="footer_about">دروازه شما به دنیای مارول و دی‌سی. کمیک‌ها، فیلم‌ها، شخصیت‌ها و داستان‌هایی که اهمیت دارند.</p>
-          <div class="footer-socials">
-            <a href="#" aria-label="Twitter">𝕏</a>
-            <a href="#" aria-label="Instagram">◉</a>
-            <a href="#" aria-label="YouTube">▶</a>
-            <a href="#" aria-label="Discord">◈</a>
-          </div>
+          <div class="footer-socials" id="footerSocials"></div>
         </div>
         <div class="footer-col">
           <h4 data-i18n="footer_nav">ناوبری</h4>
@@ -1622,6 +1645,28 @@
       return Object.assign({}, FALLBACK_DATA.site, content.site || {});
     }
 
+    // Icons only appear once the matching link is saved in the panel, so the
+    // footer never shows a link that goes nowhere.
+    const SOCIAL_LINKS = [
+      ['socialX', '𝕏', 'X / Twitter'],
+      ['socialInstagram', '◉', 'Instagram'],
+      ['socialYoutube', '▶', 'YouTube'],
+      ['socialDiscord', '◈', 'Discord']
+    ];
+
+    function renderSocials(site) {
+      const box = document.getElementById('footerSocials');
+      if (!box) return;
+      const links = SOCIAL_LINKS
+        .map(([key, glyph, label]) => [glyph, label, String(site[key] || '').trim()])
+        .filter(([, , href]) => /^https:\/\//i.test(href));
+      box.innerHTML = links
+        .map(([glyph, label, href]) =>
+          `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer" aria-label="${esc(label)}">${glyph}</a>`)
+        .join('');
+      box.style.display = links.length ? '' : 'none';
+    }
+
     function applySiteCopy() {
       const site = siteCopy();
       const pairs = [
@@ -1636,6 +1681,7 @@
         if (el) el.textContent = value;
       });
       if (heroTyped) document.getElementById('heroTitle').textContent = site.heroTitle;
+      renderSocials(site);
     }
 
     // ============================================================

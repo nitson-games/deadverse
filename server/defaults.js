@@ -60,5 +60,6 @@ export const defaultSiteSettings = {
   about_fa: "DEADVERSE مقصدی برتر برای طرفداران دنیای مارول و دی‌سی است. ما آخرین اخبار کمیک‌ها، فیلم‌ها، شخصیت‌ها و داستان‌هایی که نسل‌ها ابرقهرمان را تعریف کرده‌اند به شما می‌رسانیم. تیم ما متعهد است تحلیل‌های عمیق، اخبار فوری و جامعه‌ای که هر طرفداری در آن جای دارد را ارائه دهد. به دنیا خوش آمدید.",
   about_en: "DEADVERSE is a premier destination for fans of the Marvel and DC universes. We bring you the latest on comics, movies, characters, and the stories that define generations of heroes. Our team is dedicated to delivering in-depth analysis, breaking news, and a community where every fan belongs. Welcome to the universe.",
   btn1_fa: "کاوش کمیک‌ها", btn1_en: "Explore Comics",
-  btn2_fa: "مشاهده شخصیت‌ها", btn2_en: "View Characters"
+  btn2_fa: "مشاهده شخصیت‌ها", btn2_en: "View Characters",
+  social_x: "", social_instagram: "", social_youtube: "", social_discord: ""
 };

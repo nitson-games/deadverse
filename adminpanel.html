@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DEADVERSE • پنل مدیریت</title>
+  <meta name="robots" content="noindex" />
+  <meta name="theme-color" content="#050508" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -919,6 +922,28 @@
                   <input type="text" id="siteBtn2En" />
                 </div>
               </div>
+              <div class="data-card-header" style="border-top:1px solid #ffffff14;"><h3>لینک‌های شبکه‌های اجتماعی</h3></div>
+              <p style="padding:12px 24px 0;color:var(--muted,#9aa0a6);font-size:.85rem;">
+                فقط با <code>https://</code>. هر کدام را خالی بگذاری، آیکونش از فوتر سایت حذف می‌شود.
+              </p>
+              <div class="form-grid" style="padding-top:12px;">
+                <div class="form-field">
+                  <label>X / Twitter</label>
+                  <input type="url" id="siteSocialX" placeholder="https://x.com/deadverse" />
+                </div>
+                <div class="form-field">
+                  <label>Instagram</label>
+                  <input type="url" id="siteSocialInstagram" placeholder="https://instagram.com/deadverse" />
+                </div>
+                <div class="form-field">
+                  <label>YouTube</label>
+                  <input type="url" id="siteSocialYoutube" placeholder="https://youtube.com/@deadverse" />
+                </div>
+                <div class="form-field">
+                  <label>Discord</label>
+                  <input type="url" id="siteSocialDiscord" placeholder="https://discord.gg/deadverse" />
+                </div>
+              </div>
               <div style="margin-top: 20px; display: flex; gap: 10px;">
                 <button class="btn btn-primary" id="siteSaveBtn" onclick="saveSiteSettings()">ذخیره تنظیمات</button>
                 <button class="btn" onclick="resetSiteSettings()">بازنشانی به پیش‌فرض</button>
@@ -1601,7 +1626,11 @@
 
     function renderSiteSettings() {
       const site = state.site || {};
-      const set = (id, value) => { document.getElementById(id).value = value || ''; };
+      const set = (id, value) => {
+        const el = document.getElementById(id);
+        el.value = value || '';
+        el.style.borderColor = '';
+      };
       set('siteHeroTitle', site.heroTitle);
       set('siteHeroSubFa', site.heroSub_fa);
       set('siteHeroSubEn', site.heroSub_en);
@@ -1613,6 +1642,10 @@
       set('siteBtn1En', site.btn1_en);
       set('siteBtn2Fa', site.btn2_fa);
       set('siteBtn2En', site.btn2_en);
+      set('siteSocialX', site.socialX);
+      set('siteSocialInstagram', site.socialInstagram);
+      set('siteSocialYoutube', site.socialYoutube);
+      set('siteSocialDiscord', site.socialDiscord);
     }
 
     function updateCounts() {
@@ -2003,6 +2036,13 @@
     // ============================================================
     async function saveSiteSettings() {
       const get = (id) => document.getElementById(id).value.trim();
+      const socialInputs = {
+        socialX: 'siteSocialX', socialInstagram: 'siteSocialInstagram',
+        socialYoutube: 'siteSocialYoutube', socialDiscord: 'siteSocialDiscord'
+      };
+      Object.values(socialInputs).forEach(id => {
+        document.getElementById(id).style.borderColor = '';
+      });
       const heroTitle = get('siteHeroTitle');
       if (!heroTitle) {
         toast('عنوان Hero نمی‌تواند خالی باشد', 'error');
@@ -2014,7 +2054,9 @@
         heroDesc_fa: get('siteHeroDescFa'), heroDesc_en: get('siteHeroDescEn'),
         aboutText_fa: get('siteAboutFa'), aboutText_en: get('siteAboutEn'),
         btn1_fa: get('siteBtn1Fa'), btn1_en: get('siteBtn1En'),
-        btn2_fa: get('siteBtn2Fa'), btn2_en: get('siteBtn2En')
+        btn2_fa: get('siteBtn2Fa'), btn2_en: get('siteBtn2En'),
+        socialX: get('siteSocialX'), socialInstagram: get('siteSocialInstagram'),
+        socialYoutube: get('siteSocialYoutube'), socialDiscord: get('siteSocialDiscord')
       };
       const button = document.getElementById('siteSaveBtn');
       setBusy(button, true, 'در حال ذخیره…');
@@ -2024,7 +2066,11 @@
         renderSiteSettings();
         toast('تنظیمات ذخیره شد و در سایت اعمال شد');
       } catch (error) {
-        /* reported by call() */
+        const fields = window.DEADVERSE.fieldErrors(error);
+        Object.entries(socialInputs).forEach(([key, id]) => {
+          const el = document.getElementById(id);
+          if (el) el.style.borderColor = fields[key] ? '#ff6b7a' : '';
+        });
       } finally {
         setBusy(button, false);
       }

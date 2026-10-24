@@ -133,5 +133,16 @@ CREATE TABLE IF NOT EXISTS site_settings (
   btn1_en       text NOT NULL DEFAULT '',
   btn2_fa       text NOT NULL DEFAULT '',
   btn2_en       text NOT NULL DEFAULT '',
+  social_x      text NOT NULL DEFAULT '',
+  social_instagram text NOT NULL DEFAULT '',
+  social_youtube text NOT NULL DEFAULT '',
+  social_discord text NOT NULL DEFAULT '',
   updated_at    timestamptz NOT NULL DEFAULT now()
 );
+
+-- Profiles that predate the editable footer links get empty strings, which the
+-- public page reads as "hide this icon".
+ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS social_x text NOT NULL DEFAULT '';
+ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS social_instagram text NOT NULL DEFAULT '';
+ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS social_youtube text NOT NULL DEFAULT '';
+ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS social_discord text NOT NULL DEFAULT '';

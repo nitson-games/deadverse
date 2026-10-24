@@ -361,6 +361,29 @@ describe('site settings, inbox and backup', () => {
     assert.equal(bootstrap.body.site.heroSub_fa, 'زیرعنوان تازه');
   });
 
+  it('keeps footer social links as plain https URLs', async () => {
+    const { app } = await boot();
+    const token = await tokenFor(app);
+    const auth = { Authorization: `Bearer ${token}` };
+    const current = await request(app).get('/api/admin/site').set(auth);
+    assert.equal(current.body.socialX, '');
+
+    const saved = await request(app)
+      .put('/api/admin/site')
+      .set(auth)
+      .send({ ...current.body, socialX: 'https://x.com/deadverse' });
+    assert.equal(saved.body.socialX, 'https://x.com/deadverse');
+    const bootstrap = await request(app).get('/api/bootstrap');
+    assert.equal(bootstrap.body.site.socialX, 'https://x.com/deadverse');
+
+    const bad = await request(app)
+      .put('/api/admin/site')
+      .set(auth)
+      .send({ ...current.body, socialX: 'javascript:alert(1)' });
+    assert.equal(bad.status, 400);
+    assert.ok(bad.body.error.details.some((d) => d.field === 'socialX'));
+  });
+
   it('lists, marks read and deletes messages', async () => {
     const { app } = await boot();
     const token = await tokenFor(app);

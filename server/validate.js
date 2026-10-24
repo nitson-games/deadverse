@@ -25,6 +25,19 @@ const imageUrl = z
 
 const publicId = z.string().trim().max(300).default('');
 
+/**
+ * Optional social profile link. Same reasoning as imageUrl: an empty value hides
+ * the icon, anything else has to be a plain https address so a `javascript:`
+ * string can never become an href on the public page.
+ */
+const profileUrl = z
+  .string()
+  .trim()
+  .default('')
+  .refine((v) => v === '' || (/^https:\/\//i.test(v) && v.length <= URL_MAX), {
+    message: 'آدرس باید با https:// شروع شود یا خالی بماند'
+  });
+
 const year = z.coerce.number().int().min(1900).max(2100);
 const publisher = z.enum(['Marvel', 'DC']);
 const rating = z.coerce.number().min(0).max(10);
@@ -106,7 +119,11 @@ export const siteSchema = z.object({
   btn1_fa: optionalText(120),
   btn1_en: optionalText(120),
   btn2_fa: optionalText(120),
-  btn2_en: optionalText(120)
+  btn2_en: optionalText(120),
+  socialX: profileUrl,
+  socialInstagram: profileUrl,
+  socialYoutube: profileUrl,
+  socialDiscord: profileUrl
 }).transform((s) => ({
   hero_title: s.heroTitle,
   hero_sub_fa: s.heroSub_fa,
@@ -118,7 +135,11 @@ export const siteSchema = z.object({
   btn1_fa: s.btn1_fa,
   btn1_en: s.btn1_en,
   btn2_fa: s.btn2_fa,
-  btn2_en: s.btn2_en
+  btn2_en: s.btn2_en,
+  social_x: s.socialX,
+  social_instagram: s.socialInstagram,
+  social_youtube: s.socialYoutube,
+  social_discord: s.socialDiscord
 }));
 
 export const contactSchema = z.object({

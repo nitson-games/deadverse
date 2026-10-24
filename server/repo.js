@@ -283,27 +283,13 @@ export function makeRepo(db) {
     // ------------------------------------------------------------------- site
     SITE_COLUMNS: [
       'hero_title', 'hero_sub_fa', 'hero_sub_en', 'hero_desc_fa', 'hero_desc_en',
-      'about_fa', 'about_en', 'btn1_fa', 'btn1_en', 'btn2_fa', 'btn2_en'
+      'about_fa', 'about_en', 'btn1_fa', 'btn1_en', 'btn2_fa', 'btn2_en',
+      'social_x', 'social_instagram', 'social_youtube', 'social_discord'
     ],
 
     async getSite() {
       const { rows } = await db.query('SELECT * FROM site_settings WHERE id = $1', ['default']);
-      const r = rows[0];
-      if (!r) return null;
-      return {
-        heroTitle: r.hero_title,
-        heroSub_fa: r.hero_sub_fa,
-        heroSub_en: r.hero_sub_en,
-        heroDesc_fa: r.hero_desc_fa,
-        heroDesc_en: r.hero_desc_en,
-        aboutText_fa: r.about_fa,
-        aboutText_en: r.about_en,
-        btn1_fa: r.btn1_fa,
-        btn1_en: r.btn1_en,
-        btn2_fa: r.btn2_fa,
-        btn2_en: r.btn2_en,
-        updated_at: r.updated_at
-      };
+      return rows[0] ? this.getSiteValue(rows[0]) : null;
     },
 
     async saveSite(settings) {
@@ -332,6 +318,10 @@ export function makeRepo(db) {
         btn1_en: r.btn1_en,
         btn2_fa: r.btn2_fa,
         btn2_en: r.btn2_en,
+        socialX: r.social_x,
+        socialInstagram: r.social_instagram,
+        socialYoutube: r.social_youtube,
+        socialDiscord: r.social_discord,
         updated_at: r.updated_at
       };
     },
