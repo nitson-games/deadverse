@@ -55,6 +55,10 @@ describe('admin staff and permissions', () => {
     assert.equal((await request(app).get('/api/admin/messages').set(auth(postman))).status, 200);
     assert.equal((await request(app).delete('/api/admin/messages').set(auth(postman))).status, 200);
     assert.equal((await request(app).get('/api/admin/subscribers').set(auth(postman))).status, 200);
+    await request(app).post('/api/newsletter').send({ email: 'fan@deadverse.io' });
+    const subscriber = (await request(app).get('/api/admin/subscribers').set(auth(postman))).body[0];
+    assert.equal((await request(app).delete(`/api/admin/subscribers/${subscriber.id}`).set(auth(watcher))).status, 403);
+    assert.equal((await request(app).delete(`/api/admin/subscribers/${subscriber.id}`).set(auth(postman))).status, 200);
     assert.equal((await request(app).get('/api/admin/articles').set(auth(postman))).status, 403);
     assert.equal((await request(app).get('/api/admin/stats').set(auth(watcher))).status, 200);
     assert.equal((await request(app).get('/api/admin/site').set(auth(watcher))).status, 403);

@@ -264,9 +264,17 @@ export function makeRepo(db) {
 
     async listSubscribers() {
       const { rows } = await db.query(
-        'SELECT email, created_at FROM newsletter_subscribers ORDER BY created_at DESC LIMIT 1000'
+        'SELECT id, email, created_at FROM newsletter_subscribers ORDER BY created_at DESC LIMIT 1000'
       );
       return rows;
+    },
+
+    async deleteSubscriber(subscriberId) {
+      const { rows } = await db.query(
+        'DELETE FROM newsletter_subscribers WHERE id = $1 RETURNING email',
+        [subscriberId]
+      );
+      return rows[0] || null;
     },
 
     async countSubscribers() {

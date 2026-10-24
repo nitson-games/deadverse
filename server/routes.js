@@ -353,6 +353,14 @@ export function buildRoutes(ctx) {
     res.json(await repo.listSubscribers());
   }));
 
+  /** Removing an address is a real request people make (and the only way the
+      newsletter list stays free of test rows). */
+  router.delete('/admin/subscribers/:id', canNewsletter, h(async (req, res) => {
+    const removed = await repo.deleteSubscriber(req.params.id);
+    if (!removed) throw notFound();
+    res.json({ ok: true, email: removed.email });
+  }));
+
   // ----------------------------------------------------------- admin: settings
   const canSite = requirePermission('site');
 

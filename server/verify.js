@@ -212,6 +212,7 @@ async function main() {
 
   console.log('\n— فرم‌های بازدیدکننده');
   let messageId = null;
+  let newsletterProbe = '';
   await check('پیام تماس ذخیره و در اینباکس دیده می‌شود', async () => {
     const marker = `verify-${Date.now()}`;
     const res = await call('/contact', {
@@ -236,7 +237,9 @@ async function main() {
     assert.equal(first.status, 201);
     assert.equal(second.status, 200);
     assert.equal(second.body.already_subscribed, true);
-    if (db) await db.query('DELETE FROM newsletter_subscribers WHERE email = $1', [email]);
+    /** Left in place on purpose: the admin section below removes it through the
+        same endpoint the panel uses, so the run leaves no trace either way. */
+    newsletterProbe = email;
   });
 
   const username = process.env.ADMIN_USERNAME || 'admin';
@@ -246,6 +249,9 @@ async function main() {
   if (!password) {
     console.log('  • ADMIN_PASSWORD تنظیم نشده؛ بخش ادمین رد شد (برای تست کامل آن را در .env بگذار).');
     results.push({ name: 'admin checks (skipped)', ok: true, skipped: true });
+    if (newsletterProbe && db) {
+      await db.query('DELETE FROM newsletter_subscribers WHERE email = $1', [newsletterProbe]);
+    }
   } else {
     let token = '';
     await check('ورود با رمز درست', async () => {
@@ -263,6 +269,23 @@ async function main() {
     await check('endpoint ادمین بدون توکن ۴۰۱ می‌دهد', async () => {
       const res = await call('/admin/comics');
       assert.equal(res.status, 401);
+    });
+
+    await check('مشترک خبرنامه از پنل حذف می‌شود (ردپای تست پاک می‌ماند)', async () => {
+      const list = await call('/admin/subscribers', { token });
+      assert.equal(list.status, 200);
+      const row = list.body.find((s) => s.email === newsletterProbe);
+      assert.ok(row, 'مشترک تستی در لیست نیست');
+      assert.ok(row.id, 'لیست باید id بدهد تا بشود رکورد را حذف کرد');
+
+      const removed = await call(`/admin/subscribers/${row.id}`, { method: 'DELETE', token });
+      assert.equal(removed.status, 200, JSON.stringify(removed.body));
+      assert.equal(removed.body.email, newsletterProbe);
+
+      const after = await call('/admin/subscribers', { token });
+      assert.ok(!after.body.some((s) => s.email === newsletterProbe), 'رکورد بعد از حذف هنوز در لیست می‌آید');
+      assert.equal((await call(`/admin/subscribers/${row.id}`, { method: 'DELETE', token })).status, 404);
+      newsletterProbe = '';
     });
 
     await check('دور کامل افزودن → ویرایش → حذف کمیک', async () => {

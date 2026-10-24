@@ -470,6 +470,37 @@ describe('site settings, inbox and backup', () => {
     assert.equal(cleared.body.deleted, 1);
   });
 
+  it('removes a newsletter subscriber by id', async () => {
+    const { app, store } = await boot();
+    const token = await tokenFor(app);
+    const auth = { Authorization: `Bearer ${token}` };
+    await request(app).post('/api/newsletter').send({ email: 'reader@deadverse.io' });
+
+    const list = await request(app).get('/api/admin/subscribers').set(auth);
+    assert.equal(list.body.length, 1);
+    assert.ok(list.body[0].id, 'the list must carry an id so a row can be removed');
+
+    const removed = await request(app).delete(`/api/admin/subscribers/${list.body[0].id}`).set(auth);
+    assert.equal(removed.status, 200);
+    assert.equal(removed.body.email, 'reader@deadverse.io');
+    assert.equal(store.subscribers.length, 0);
+
+    const stats = await request(app).get('/api/admin/stats').set(auth);
+    assert.equal(stats.body.subscribers, 0);
+
+    const again = await request(app).delete(`/api/admin/subscribers/${list.body[0].id}`).set(auth);
+    assert.equal(again.status, 404);
+  });
+
+  it('will not remove a subscriber without a session', async () => {
+    const { app, store } = await boot();
+    await request(app).post('/api/newsletter').send({ email: 'reader@deadverse.io' });
+
+    const anonymous = await request(app).delete(`/api/admin/subscribers/${store.subscribers[0].id}`);
+    assert.equal(anonymous.status, 401);
+    assert.equal(store.subscribers.length, 1);
+  });
+
   it('exports and re-imports without losing content', async () => {
     const { app, store } = await boot();
     const token = await tokenFor(app);

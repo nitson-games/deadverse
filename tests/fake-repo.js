@@ -125,6 +125,11 @@ export function makeFakeRepo(store) {
     async listSubscribers() {
       return [...store.subscribers];
     },
+    async deleteSubscriber(subscriberId) {
+      const index = store.subscribers.findIndex((s) => s.id === subscriberId);
+      if (index === -1) return null;
+      return store.subscribers.splice(index, 1)[0];
+    },
     async countSubscribers() {
       return store.subscribers.length;
     },

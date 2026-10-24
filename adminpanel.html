@@ -992,6 +992,7 @@
                   <tr>
                     <th>ایمیل</th>
                     <th>تاریخ عضویت</th>
+                    <th>عملیات</th>
                   </tr>
                 </thead>
                 <tbody id="tbodySubscribers"></tbody>
@@ -1618,15 +1619,30 @@
     function renderSubscribers() {
       const tbody = document.getElementById('tbodySubscribers');
       if (!state.subscribers.length) {
-        tbody.innerHTML = emptyRow(2, '📧', 'مشترکی وجود ندارد');
+        tbody.innerHTML = emptyRow(3, '📧', 'مشترکی وجود ندارد');
         return;
       }
       tbody.innerHTML = state.subscribers.map(s => `
         <tr>
           <td class="td-title" style="direction:ltr; text-align:${currentLang === 'fa' ? 'right' : 'left'};">${esc(s.email)}</td>
           <td style="font-size:0.78rem;color:var(--text-dim);white-space:nowrap;">${esc(new Date(s.created_at).toLocaleString('en-GB'))}</td>
+          <td><button class="icon-btn danger" onclick="deleteSubscriber('${esc(s.id)}')" title="حذف">🗑</button></td>
         </tr>
       `).join('');
+    }
+
+    async function deleteSubscriber(subscriberId) {
+      if (!confirm('حذف این مشترک؟')) return;
+      try {
+        await call(`/admin/subscribers/${encodeURIComponent(subscriberId)}`, { method: 'DELETE' });
+        state.subscribers = state.subscribers.filter(s => s.id !== subscriberId);
+        renderSubscribers();
+        updateCounts();
+        toast('مشترک حذف شد');
+        await refreshStats();
+      } catch (error) {
+        /* reported by call() */
+      }
     }
 
     function renderSiteSettings() {
