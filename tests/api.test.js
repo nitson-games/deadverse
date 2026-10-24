@@ -316,6 +316,7 @@ describe('media stored in the database', () => {
     assert.equal(served.status, 200);
     assert.equal(served.headers['content-type'], 'image/png');
     assert.match(served.headers['cache-control'], /public, max-age=31536000, immutable/);
+    assert.match(served.headers['vercel-cdn-cache-control'], /public, s-maxage=\d+/, 'edge copy must expire so deleted bytes stop being served');
     assert.deepEqual(served.body, PNG_PIXEL);
 
     const cached = await request(app).get(`/api/media/${res.body.id}`).set('If-None-Match', served.headers.etag);

@@ -117,7 +117,10 @@ export function buildRoutes(ctx) {
   );
 
   /** The bytes live in the same Postgres cluster as the text; this is the CDN
-      edge in front of them. Ids never change content, so the answer is immutable. */
+      edge in front of them. Ids never change content, so the browser answer is
+      immutable — but the edge TTL stays short on purpose: deleting an item
+      frees its bytes immediately, and a year-long edge copy would keep serving
+      an image that no longer belongs to anything. */
   router.get(
     '/media/:id',
     h(async (req, res) => {
@@ -127,6 +130,7 @@ export function buildRoutes(ctx) {
       const etag = `"${req.params.id}-${row.bytes}"`;
       res.set('Content-Type', row.content_type);
       res.set('Cache-Control', 'public, max-age=31536000, immutable');
+      res.set('Vercel-CDN-Cache-Control', 'public, s-maxage=3600');
       res.set('ETag', etag);
       if (req.headers['if-none-match'] === etag) return res.status(304).end();
       res.send(row.data);

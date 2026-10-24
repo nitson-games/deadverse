@@ -393,8 +393,14 @@ async function main() {
 
       const removed = await call(`/admin/comics/${comic.body.id}`, { method: 'DELETE', token });
       assert.equal(removed.status, 200);
-      const afterDelete = await fetchMedia(mediaId);
+      /** The bust parameter skips Vercel's edge copy and asks the database,
+          which is where the bytes actually live. */
+      const afterDelete = await fetch(api(`/media/${mediaId}?check=${Date.now()}`));
       assert.equal(afterDelete.status, 404, 'بایت‌های تصویر بعد از حذف آیتم پاک نشد');
+      if (!REMOTE) {
+        // Vercel consumes this header itself and does not forward it to clients.
+        assert.match(served.headers.get('vercel-cdn-cache-control') || '', /s-maxage=\d+/, 'کش لبه باید عمر محدود داشته باشد');
+      }
     });
 
     await check('فایل غیرتصویری و بدون ورود رد می‌شوند', async () => {
