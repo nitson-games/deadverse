@@ -1,0 +1,17 @@
+node_modules/
+coverage/
+
+# secrets — never commit; .env.example is the committed template
+.env
+.env.*
+!.env.example
+
+.vercel
+*.log
+npm-debug.log*
+.DS_Store
+
+# local agent/tooling artifacts, not part of the site
+.agents/
+.claude/
+skills-lock.json

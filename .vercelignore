@@ -1,0 +1,10 @@
+# Never upload local secrets or machine-only artefacts with the deployment.
+.env
+.env.*
+!.env.example
+.vercel
+node_modules
+tests
+.agents
+.claude
+skills-lock.json
