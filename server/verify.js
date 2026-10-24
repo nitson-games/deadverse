@@ -48,7 +48,23 @@ async function call(path, { method = 'GET', body, token } = {}) {
   } catch {
     payload = { raw: text.slice(0, 200) };
   }
-  return { status: response.status, body: payload };
+  return { status: response.status, body: payload, retryAfter: Number(response.headers.get('retry-after')) || 0 };
+}
+
+/**
+ * Every login shares one IP bucket on the server and a full run makes about eight
+ * of them, so a retry-after-the-window is the honest answer to a 429 here — the
+ * alternative is reporting a working rate limiter as a product failure.
+ */
+async function login(body) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const res = await call('/admin/login', { method: 'POST', body });
+    if (res.status !== 429) return res;
+    const wait = Math.min(res.retryAfter || 60, 300);
+    console.log(`      · سقف تلاش ورود فعال است — ${wait} ثانیه صبر می‌کنم`);
+    await new Promise((resolve) => setTimeout(resolve, wait * 1000));
+  }
+  return call('/admin/login', { method: 'POST', body });
 }
 
 async function main() {
@@ -205,14 +221,14 @@ async function main() {
   } else {
     let token = '';
     await check('ورود با رمز درست', async () => {
-      const res = await call('/admin/login', { method: 'POST', body: { username, password } });
+      const res = await login({ username, password });
       assert.equal(res.status, 200, JSON.stringify(res.body));
       token = res.body.token;
       assert.ok(token);
     });
 
     await check('ورود با رمز غلط رد می‌شود', async () => {
-      const res = await call('/admin/login', { method: 'POST', body: { username, password: `${password}-no` } });
+      const res = await login({ username, password: `${password}-no` });
       assert.equal(res.status, 401);
     });
 
@@ -360,7 +376,7 @@ async function main() {
       staffId = created.body.id;
       assert.deepEqual(created.body.permissions, ['content']);
 
-      const session = await call('/admin/login', { method: 'POST', body: { username: staffUsername, password: staffPassword } });
+      const session = await login({ username: staffUsername, password: staffPassword });
       assert.equal(session.status, 200, JSON.stringify(session.body));
       const staffToken = session.body.token;
       assert.equal((await call('/admin/comics', { token: staffToken })).status, 200);
@@ -369,9 +385,9 @@ async function main() {
     });
 
     await check('حذف دسترسی، نشست قبلی را باطل و دسترسی را قطع می‌کند', async () => {
-      const login = await call('/admin/login', { method: 'POST', body: { username: staffUsername, password: staffPassword } });
-      assert.equal(login.status, 200);
-      const staffToken = login.body.token;
+      const reauth = await login({ username: staffUsername, password: staffPassword });
+      assert.equal(reauth.status, 200);
+      const staffToken = reauth.body.token;
       assert.equal((await call('/admin/comics', { token: staffToken })).status, 200);
 
       const edited = await call(`/admin/admins/${staffId}`, {
@@ -383,7 +399,7 @@ async function main() {
       assert.deepEqual(edited.body.permissions, []);
       assert.equal((await call('/admin/stats', { token: staffToken })).status, 401, 'توکن قدیمی باید باطل شده باشد');
 
-      const relogin = await call('/admin/login', { method: 'POST', body: { username: staffUsername, password: staffPassword } });
+      const relogin = await login({ username: staffUsername, password: staffPassword });
       assert.equal((await call('/admin/comics', { token: relogin.body.token })).status, 403, 'بدون دسترسی باید ۴۰۳ بگیرد');
     });
 
@@ -413,8 +429,8 @@ async function main() {
       });
       assert.equal(off.status, 200);
       assert.equal(off.body.is_active, false);
-      const login = await call('/admin/login', { method: 'POST', body: { username: staffUsername, password: fresh } });
-      assert.equal(login.status, 401, 'حساب غیرفعال نباید وارد شود');
+      const attempt = await login({ username: staffUsername, password: fresh });
+      assert.equal(attempt.status, 401, 'حساب غیرفعال نباید وارد شود');
     });
 
     await check('حذف حساب تستی', async () => {
