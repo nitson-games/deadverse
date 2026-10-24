@@ -67,6 +67,34 @@ async function login(body) {
   return call('/admin/login', { method: 'POST', body });
 }
 
+/** A real 1×1 PNG — the API decides the type from these bytes, not the header. */
+const PNG_PIXEL = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+  'base64'
+);
+
+/** Uploads go out as the raw file bytes, exactly like the panel does. */
+async function uploadMedia(bytes, { token, contentType = 'image/png' } = {}) {
+  const response = await fetch(api('/admin/media'), {
+    method: 'POST',
+    headers: { 'Content-Type': contentType, ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: bytes
+  });
+  const text = await response.text();
+  let payload = null;
+  try {
+    payload = text ? JSON.parse(text) : null;
+  } catch {
+    payload = { raw: text.slice(0, 200) };
+  }
+  return { status: response.status, body: payload, headers: response.headers };
+}
+
+async function fetchMedia(id) {
+  const response = await fetch(api(`/media/${id}`));
+  return { status: response.status, headers: response.headers, buffer: Buffer.from(await response.arrayBuffer()) };
+}
+
 async function main() {
   if (REMOTE) {
     base = `${REMOTE.replace(/\/+$/, '')}/api`;
@@ -132,7 +160,7 @@ async function main() {
         `SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`
       );
       const found = rows.map((r) => r.table_name);
-      for (const table of ['admins', 'comics', 'articles', 'movies', 'characters', 'team_members', 'messages', 'newsletter_subscribers', 'site_settings']) {
+      for (const table of ['admins', 'comics', 'articles', 'movies', 'characters', 'team_members', 'messages', 'newsletter_subscribers', 'site_settings', 'media']) {
         assert.ok(found.includes(table), `جدول ${table} نیست`);
       }
     });
@@ -332,14 +360,50 @@ async function main() {
       assert.equal(restored.body.socialX, before.body.socialX);
     });
 
-    await check('امضای آپلود Cloudinary (در صورت پیکربندی بودن)', async () => {
-      const res = await call('/admin/upload-sign', { method: 'POST', token, body: { key: 'verify' } });
-      if (res.status === 503) {
-        console.log('      · Cloudinary تنظیم نیست — ۵۰۳ درست برگشت.');
-        return;
-      }
-      assert.equal(res.status, 200);
-      assert.match(res.body.signature, /^[0-9a-f]{40}$/);
+    await check('آپلود تصویر → ذخیره در دیتابیس → سرو مجدد با کش', async () => {
+      const uploaded = await uploadMedia(PNG_PIXEL, { token });
+      assert.equal(uploaded.status, 201, JSON.stringify(uploaded.body));
+      const mediaId = uploaded.body.id;
+      assert.match(mediaId, /^md_[0-9a-z]+$/);
+      assert.equal(uploaded.body.url, `/api/media/${mediaId}`);
+      assert.equal(uploaded.body.contentType, 'image/png');
+
+      const served = await fetchMedia(mediaId);
+      assert.equal(served.status, 200);
+      assert.equal(served.headers.get('content-type'), 'image/png');
+      assert.match(served.headers.get('cache-control') || '', /immutable/);
+      assert.ok(served.buffer.equals(PNG_PIXEL), 'بایت‌های سروشده با فایل آپلودی یکی نیست');
+
+      const cached = await fetch(api(`/media/${mediaId}`), {
+        headers: { 'If-None-Match': served.headers.get('etag') || '' }
+      });
+      assert.equal(cached.status, 304, 'ETag درست کار نمی‌کند');
+
+      const comic = await call('/admin/comics', {
+        method: 'POST',
+        token,
+        body: {
+          title_fa: 'تست تصویر', title_en: 'Verify Image', publisher: 'Marvel', year: 2026,
+          desc_fa: 'نوشته‌ی تست', desc_en: 'verify text',
+          image: uploaded.body.url, imagePublicId: mediaId
+        }
+      });
+      assert.equal(comic.status, 201, JSON.stringify(comic.body));
+      assert.equal(comic.body.image, uploaded.body.url);
+
+      const removed = await call(`/admin/comics/${comic.body.id}`, { method: 'DELETE', token });
+      assert.equal(removed.status, 200);
+      const afterDelete = await fetchMedia(mediaId);
+      assert.equal(afterDelete.status, 404, 'بایت‌های تصویر بعد از حذف آیتم پاک نشد');
+    });
+
+    await check('فایل غیرتصویری و بدون ورود رد می‌شوند', async () => {
+      const notImage = await uploadMedia(Buffer.from('<script>alert(1)</script>'), { token });
+      assert.equal(notImage.status, 400, JSON.stringify(notImage.body));
+      const noAuth = await uploadMedia(PNG_PIXEL, {});
+      assert.equal(noAuth.status, 401);
+      const unknownId = await fetchMedia('not_a_media_id');
+      assert.equal(unknownId.status, 404);
     });
 
     await check('خروجی پشتیبان قابل بازگردانی است', async () => {

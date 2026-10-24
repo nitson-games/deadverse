@@ -7,8 +7,14 @@ import { parseEntityInput } from '../server/validate.js';
 import { createStore, makeFakeRepo } from './fake-repo.js';
 
 export const PASSWORD = 'Correc-Horse-Battery-9';
-export const CLOUD_IMG = 'https://res.cloudinary.com/demo/image/upload/deadverse/comics/one.jpg';
-export const CLOUD_PID = 'deadverse/comics/one';
+export const EXTERNAL_IMG = 'https://example.com/images/deadverse/comics/one.jpg';
+export const EXTERNAL_PID = 'legacy-external-id';
+
+/** A real 1×1 PNG — the API reads the type from these bytes, not the header. */
+export const PNG_PIXEL = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+  'base64'
+);
 
 function baseEnv(overrides = {}) {
   return {
@@ -16,7 +22,6 @@ function baseEnv(overrides = {}) {
     jwtSecret: 'test-secret-value-that-is-long-enough',
     tokenTtl: '1h',
     allowedOrigins: [],
-    cloudinary: { cloudName: 'demo', apiKey: 'key', apiSecret: 'secret', folder: 'deadverse' },
     bootstrapAdmin: { username: 'admin', password: '' },
     nodeEnv: 'test',
     ...overrides
@@ -26,7 +31,8 @@ function baseEnv(overrides = {}) {
 const noLimiter = {
   login: (req, res, next) => next(),
   contact: (req, res, next) => next(),
-  newsletter: (req, res, next) => next()
+  newsletter: (req, res, next) => next(),
+  upload: (req, res, next) => next()
 };
 
 export async function boot({ env = {}, admins = [{ username: 'admin', password: PASSWORD }] } = {}) {
@@ -46,15 +52,13 @@ export async function boot({ env = {}, admins = [{ username: 'admin', password: 
   }
   await repo.saveSite(SITE_SEED);
 
-  const released = [];
   const app = createApp({
     repo,
     env: baseEnv(env),
     limiter: env.useRealLimiter ? undefined : noLimiter,
-    releaseAssets: async (pids) => released.push(...pids),
     withTransaction: async (fn) => fn(repo)
   });
-  return { app, repo, store, released };
+  return { app, repo, store };
 }
 
 export async function tokenFor(app, username = 'admin', password = PASSWORD) {

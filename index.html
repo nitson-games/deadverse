@@ -1378,7 +1378,7 @@
 
     /** HTTPS-only, enforced by the API; the guard here is defence in depth. */
     function safeImage(url) {
-      return typeof url === 'string' && /^https:\/\//i.test(url) ? url : '';
+      return window.DEADVERSE.mediaSrc(url);
     }
 
     function pick(fa, en) {
@@ -1521,8 +1521,9 @@
       const track = document.getElementById('teamTrack');
       track.innerHTML = content.team.map((m) => {
         const name = pick(m.name_fa, m.name_en);
-        const avatar = safeImage(m.image)
-          ? `<img src="${esc(m.image)}" alt="${esc(name)}" loading="lazy">`
+        const src = safeImage(m.image);
+        const avatar = src
+          ? `<img src="${esc(src)}" alt="${esc(name)}" loading="lazy">`
           : esc(m.initials || name.charAt(0));
         return `
           <div class="team-card">

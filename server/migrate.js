@@ -17,6 +17,17 @@ function generatePassword(length = 16) {
   return out;
 }
 
+function formatBytes(count) {
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let value = count;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  return `${value.toFixed(unit === 0 || value >= 10 ? 0 : 1)} ${units[unit]}`;
+}
+
 async function main() {
   const env = process.env;
   if (!env.DATABASE_URL) {
@@ -75,13 +86,9 @@ async function main() {
     console.log('→ تنظیمات سایت از قبل وجود دارد');
   }
 
-  const cloudinaryReady = Boolean(
-    env.CLOUDINARY_CLOUD_NAME && env.CLOUDINARY_API_KEY && env.CLOUDINARY_API_SECRET
-  );
+  const usage = await repo.mediaUsage();
   console.log(
-    cloudinaryReady
-      ? '→ Cloudinary پیکربندی است؛ آپلود تصویر فعال.'
-      : '! Cloudinary پیکربندی نیست؛ آپلود تصویر تا تکمیل .env غیرفعال است.'
+    `→ تصاویر: ${usage.count} فایل در جدول media (${formatBytes(usage.bytes)}) — آپلود از پنل فعال است.`
   );
 
   if (credentials) {

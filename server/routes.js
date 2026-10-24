@@ -8,7 +8,6 @@ import {
   loginSchema,
   changePasswordSchema
 } from './validate.js';
-import { buildUploadSignature, destroyAsset, endpoint, isCloudinaryConfigured } from './cloudinary.js';
 import { hashPassword, signToken, verifyPassword } from './auth.js';
 import {
   PERMISSIONS,
@@ -16,8 +15,10 @@ import {
   hasPermission,
   normalizePermissions
 } from './permissions.js';
-import { adminPasswordSchema, adminProfileSchema, createAdminSchema } from './validate.js';
+import { adminPasswordSchema, adminProfileSchema, createAdminSchema, isStorableImage, MEDIA_REF_PREFIX } from './validate.js';
 import { ENTITIES } from './repo.js';
+import { id, ID_PREFIX } from './ids.js';
+import { MAX_MEDIA_BYTES, MEDIA_ID_PATTERN, detectImageType } from './media.js';
 import { SEEDS, SITE_SEED, EMPTY_SITE_CLIENT, seedInputs } from './seed.js';
 
 const COLLECTIONS = {
@@ -37,15 +38,12 @@ function validationError(error) {
   );
 }
 
-/** Data URIs are leftovers from the localStorage era and cannot be stored. */
-const isStorableImage = (value) => typeof value === 'string' && /^https:\/\//i.test(value);
-
 /**
- * A stored asset is released when its slot now holds a different URL (or none).
- * Comparing URLs rather than public ids means an edit that never re-uploaded
- * cannot accidentally delete the picture still on screen.
+ * A stored picture is released when its slot now holds a different URL (or none).
+ * Comparing URLs rather than ids means an edit that never re-uploaded cannot
+ * accidentally delete the image still on screen.
  */
-function orphanedAssetIds(type, oldRow, nextInput) {
+function releasedMediaIds(type, oldRow, nextInput) {
   const released = [];
   for (const image of ENTITIES[type].images) {
     const previousPid = oldRow?.[image.pid] || '';
@@ -56,7 +54,7 @@ function orphanedAssetIds(type, oldRow, nextInput) {
   return released;
 }
 
-/** Keep the stored public id when the picture itself was not replaced. */
+/** Keep the stored media id when the picture itself was not replaced. */
 function carryOverPids(type, oldRow, input) {
   for (const image of ENTITIES[type].images) {
     if (!input[image.pidInput] && input[image.input] && input[image.input] === oldRow[image.url]) {
@@ -115,6 +113,23 @@ export function buildRoutes(ctx) {
         characters,
         team
       });
+    })
+  );
+
+  /** The bytes live in the same Postgres cluster as the text; this is the CDN
+      edge in front of them. Ids never change content, so the answer is immutable. */
+  router.get(
+    '/media/:id',
+    h(async (req, res) => {
+      if (!MEDIA_ID_PATTERN.test(req.params.id)) throw notFound('تصویر پیدا نشد');
+      const row = await repo.getMedia(req.params.id);
+      if (!row) throw notFound('تصویر پیدا نشد');
+      const etag = `"${req.params.id}-${row.bytes}"`;
+      res.set('Content-Type', row.content_type);
+      res.set('Cache-Control', 'public, max-age=31536000, immutable');
+      res.set('ETag', etag);
+      if (req.headers['if-none-match'] === etag) return res.status(304).end();
+      res.send(row.data);
     })
   );
 
@@ -294,7 +309,7 @@ export function buildRoutes(ctx) {
       const oldRow = await repo.findRaw(type, req.params.id);
       if (!oldRow) throw notFound('این مورد وجود ندارد یا حذف شده است');
       const updated = await repo.update(type, req.params.id, carryOverPids(type, oldRow, input));
-      await ctx.releaseAssets(orphanedAssetIds(type, oldRow, input));
+      await ctx.releaseMedia(releasedMediaIds(type, oldRow, input));
       res.json(updated);
     }));
 
@@ -302,7 +317,7 @@ export function buildRoutes(ctx) {
       const oldRow = await repo.findRaw(type, req.params.id);
       if (!oldRow) throw notFound('این مورد وجود ندارد یا حذف شده است');
       const removed = await repo.remove(type, req.params.id);
-      await ctx.releaseAssets(ENTITIES[type].images.map((image) => oldRow[image.pid]).filter(Boolean));
+      await ctx.releaseMedia(ENTITIES[type].images.map((image) => oldRow[image.pid]).filter(Boolean));
       res.json({ ok: true, removed });
     }));
   }
@@ -359,7 +374,7 @@ export function buildRoutes(ctx) {
 
   // -------------------------------------------------------------- admin: stats
   router.get('/admin/stats', requireAdmin, h(async (req, res) => {
-    const [comics, articles, movies, characters, team, unread, subscribers, messages] =
+    const [comics, articles, movies, characters, team, unread, subscribers, messages, media] =
       await Promise.all([
         repo.count('comic'),
         repo.count('article'),
@@ -368,7 +383,8 @@ export function buildRoutes(ctx) {
         repo.count('team'),
         repo.countUnreadMessages(),
         repo.countSubscribers(),
-        repo.listMessages(1)
+        repo.listMessages(1),
+        repo.mediaUsage()
       ]);
     res.json({
       comics,
@@ -378,17 +394,37 @@ export function buildRoutes(ctx) {
       team,
       unread,
       subscribers,
+      mediaCount: media.count,
+      mediaBytes: media.bytes,
       lastMessageAt: messages[0]?.created_at || null
     });
   }));
 
-  // ------------------------------------------------------------ admin: uploads
-  router.post('/admin/upload-sign', canContent, h(async (req, res) => {
-    if (!isCloudinaryConfigured(env.cloudinary)) {
-      throw new ApiError(503, 'cloudinary_not_configured', 'Cloudinary در سرور پیکربندی نشده است');
+  // ------------------------------------------------------------- admin: media
+  /** Raw binary body (see the express.raw mount in app.js) — no JSON envelope. */
+  router.post('/admin/media', canContent, ctx.limiter.upload, h(async (req, res) => {
+    const buffer = Buffer.isBuffer(req.body) ? req.body : null;
+    if (!buffer || !buffer.length) throw badRequest('بدنه‌ی درخواست خالی است');
+    if (buffer.length > MAX_MEDIA_BYTES) {
+      throw new ApiError(413, 'payload_too_large', 'تصویر بیش از ۴ مگابایت است');
     }
-    const key = String(req.body?.key || 'misc').replace(/[^a-z0-9_-]/gi, '').slice(0, 40) || 'misc';
-    res.json({ upload_endpoint: endpoint(env.cloudinary), ...buildUploadSignature(env.cloudinary, { key }) });
+    const contentType = detectImageType(buffer);
+    if (!contentType) {
+      throw badRequest('فقط JPEG، PNG، GIF یا WebP قابل ذخیره است');
+    }
+    const mediaId = id(ID_PREFIX.media);
+    await repo.insertMedia({
+      id: mediaId,
+      contentType,
+      bytes: buffer.length,
+      data: buffer
+    });
+    res.status(201).json({
+      id: mediaId,
+      url: `${MEDIA_REF_PREFIX}${mediaId}`,
+      contentType,
+      bytes: buffer.length
+    });
   }));
 
   // ------------------------------------------------------- admin: backup pages
@@ -432,10 +468,15 @@ export function buildRoutes(ctx) {
           for (const image of ENTITIES[type].images) {
             const value = candidate[image.input];
             if (value && !isStorableImage(value)) {
-              warnings.push(`${collection}[${index}]: تصویر «${image.input}» ذخیره نشد — فقط URL HTTPS مجاز است`);
+              warnings.push(`${collection}[${index}]: تصویر «${image.input}» ذخیره نشد — فقط آدرس HTTPS یا مسیر /api/media/… مجاز است`);
             }
-            candidate[image.input] = isStorableImage(value) ? value : '';
-            candidate[image.pidInput] = '';
+            const stored = isStorableImage(value) ? String(value || '').trim() : '';
+            candidate[image.input] = stored;
+            // A reference to our own stored bytes keeps its id, so deleting the
+            // row later still frees the space.
+            candidate[image.pidInput] = stored.startsWith(MEDIA_REF_PREFIX)
+              ? stored.slice(MEDIA_REF_PREFIX.length)
+              : '';
           }
           await txRepo.create(type, parseEntityInput(type, candidate));
           imported[collection] += 1;
@@ -475,6 +516,8 @@ export function buildRoutes(ctx) {
       await txRepo.clearMessages();
       await txRepo.resetSite();
       await txRepo.saveSite(SITE_SEED);
+      // The seeded content has no pictures, so every stored image would be dead weight.
+      await txRepo.clearMedia();
     });
     res.json({ ok: true, message: 'همه داده‌ها به حالت پیش‌فرض بازنشانی شد' });
   }));

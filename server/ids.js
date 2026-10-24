@@ -17,5 +17,6 @@ export const ID_PREFIX = {
   character: 'ch_',
   team: 'tm_',
   message: 'ms_',
-  subscriber: 'ns_'
+  subscriber: 'ns_',
+  media: 'md_'
 };

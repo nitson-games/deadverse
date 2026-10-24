@@ -2,7 +2,7 @@
   "name": "deadverse-server",
   "version": "1.0.0",
   "private": true,
-  "description": "DEADVERSE backend: Express API on Vercel with Neon PostgreSQL and Cloudinary images",
+  "description": "DEADVERSE backend: Express API on Vercel with Neon PostgreSQL (content and images in one database)",
   "type": "module",
   "engines": {
     "node": ">=18.14"

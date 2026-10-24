@@ -13,12 +13,6 @@ export function loadEnv() {
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean),
-    cloudinary: {
-      cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
-      apiKey: process.env.CLOUDINARY_API_KEY || '',
-      apiSecret: process.env.CLOUDINARY_API_SECRET || '',
-      folder: process.env.CLOUDINARY_FOLDER || 'deadverse'
-    },
     bootstrapAdmin: {
       username: process.env.ADMIN_USERNAME || 'admin',
       password: process.env.ADMIN_PASSWORD || ''

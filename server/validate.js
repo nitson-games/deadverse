@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { badRequest } from './errors.js';
 import { PERMISSIONS } from './permissions.js';
+import { MEDIA_ID_PATTERN } from './media.js';
 
 const TEXT_MAX = 4000;
 const URL_MAX = 600;
@@ -11,18 +12,33 @@ const requiredText = (max = 200) =>
 const optionalText = (max = TEXT_MAX) => z.string().trim().max(max).default('');
 
 /**
- * Only HTTPS image URLs are accepted. This is what stops `javascript:`/`data:`
- * payloads from reaching the site, and keeps the old base64-in-database pattern
- * from coming back.
+ * Two shapes are accepted for a picture: an absolute HTTPS URL (a legacy
+ * external asset) and `/api/media/<id>` — the path the API itself serves the
+ * stored bytes from. `javascript:`/`data:` payloads are rejected by both tests,
+ * and the relative form is what keeps an image working after the domain changes.
  */
+export const MEDIA_REF_PREFIX = '/api/media/';
+
+const isMediaRef = (v) =>
+  v.startsWith(MEDIA_REF_PREFIX) && MEDIA_ID_PATTERN.test(v.slice(MEDIA_REF_PREFIX.length));
+
+export function isStorableImage(value) {
+  if (typeof value !== 'string') return false;
+  const v = value.trim();
+  if (!v) return true;
+  if (v.length > URL_MAX) return false;
+  return /^https:\/\//i.test(v) || isMediaRef(v);
+}
+
 const imageUrl = z
   .string()
   .trim()
   .default('')
-  .refine((v) => v === '' || (/^https:\/\//i.test(v) && v.length <= URL_MAX), {
-    message: 'تصویر باید یک آدرس HTTPS معتبر باشد'
+  .refine(isStorableImage, {
+    message: 'تصویر باید یک آدرس HTTPS معتبر یا مسیر /api/media/… باشد'
   });
 
+/** The id of the stored bytes; any external string is kept only as a reference. */
 const publicId = z.string().trim().max(300).default('');
 
 /**

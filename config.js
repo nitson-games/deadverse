@@ -22,6 +22,31 @@
     return API_BASE.replace(/\/+$/, '');
   }
 
+  function toResult(response) {
+    return response.text().then(function (text) {
+      var payload = null;
+      try {
+        payload = text ? JSON.parse(text) : null;
+      } catch (error) {
+        payload = null;
+      }
+      if (response.ok) return { ok: true, status: response.status, data: payload };
+
+      var error = new Error((payload && payload.error && payload.error.message) || 'خطای ' + response.status);
+      error.status = response.status;
+      error.code = payload && payload.error ? payload.error.code : 'unknown';
+      error.details = payload && payload.error ? payload.error.details : null;
+      throw error;
+    });
+  }
+
+  function authHeaders(extra) {
+    var headers = Object.assign({}, extra || {});
+    var token = window.DEADVERSE.token();
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+    return headers;
+  }
+
   window.DEADVERSE = {
     apiBase: resolve(),
     // GET with no auth; every other call goes through request().
@@ -30,9 +55,7 @@
     },
     request: function (path, options) {
       var opts = options || {};
-      var headers = Object.assign({}, opts.headers || {});
-      var token = window.DEADVERSE.token();
-      if (token) headers['Authorization'] = 'Bearer ' + token;
+      var headers = authHeaders(opts.headers);
       if (opts.body !== undefined && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
 
       return fetch(window.DEADVERSE.apiBase + path, {
@@ -40,23 +63,26 @@
         headers: headers,
         body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
         cache: 'no-store'
-      }).then(function (response) {
-        return response.text().then(function (text) {
-          var payload = null;
-          try {
-            payload = text ? JSON.parse(text) : null;
-          } catch (error) {
-            payload = null;
-          }
-          if (response.ok) return { ok: true, status: response.status, data: payload };
-
-          var error = new Error((payload && payload.error && payload.error.message) || 'خطای ' + response.status);
-          error.status = response.status;
-          error.code = payload && payload.error ? payload.error.code : 'unknown';
-          error.details = payload && payload.error ? payload.error.details : null;
-          throw error;
-        });
-      });
+      }).then(toResult);
+    },
+    /** Pictures upload as the raw file bytes; JSON would only inflate them. */
+    postMedia: function (blob) {
+      return fetch(window.DEADVERSE.apiBase + '/admin/media', {
+        method: 'POST',
+        headers: authHeaders({ 'Content-Type': blob.type || 'application/octet-stream' }),
+        body: blob
+      }).then(toResult);
+    },
+    /**
+     * A stored picture is either an absolute https URL or "/api/media/<id>" —
+     * bytes living in the database. The second form is resolved against apiBase
+     * so the same record works on GitHub Pages, on Vercel and on localhost.
+     */
+    mediaSrc: function (url) {
+      var value = typeof url === 'string' ? url.trim() : '';
+      if (/^https:\/\//i.test(value)) return value;
+      if (value.indexOf('/api/') === 0) return window.DEADVERSE.apiBase + value.slice('/api'.length);
+      return '';
     },
     token: function () {
       try {

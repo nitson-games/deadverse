@@ -25,6 +25,7 @@ export function createStore() {
     admins: [],
     messages: [],
     subscribers: [],
+    media: new Map(),
     site: null
   };
 }
@@ -126,6 +127,31 @@ export function makeFakeRepo(store) {
     },
     async countSubscribers() {
       return store.subscribers.length;
+    },
+
+    async insertMedia({ id: mediaId, contentType, bytes, data }) {
+      store.media.set(mediaId, { content_type: contentType, bytes, data });
+      return { id: mediaId, contentType, bytes };
+    },
+    async getMedia(mediaId) {
+      return store.media.get(mediaId) || null;
+    },
+    async deleteMedia(ids) {
+      let deleted = 0;
+      for (const mediaId of ids) {
+        if (store.media.delete(mediaId)) deleted += 1;
+      }
+      return deleted;
+    },
+    async mediaUsage() {
+      let bytes = 0;
+      for (const row of store.media.values()) bytes += row.bytes;
+      return { count: store.media.size, bytes };
+    },
+    async clearMedia() {
+      const deleted = store.media.size;
+      store.media.clear();
+      return deleted;
     },
 
     async getSite() {

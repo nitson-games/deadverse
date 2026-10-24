@@ -6,7 +6,7 @@ import { verifyToken, bearerFrom } from './auth.js';
 import { rateLimit } from './rate-limit.js';
 import { makeRepo } from './repo.js';
 import { buildRoutes } from './routes.js';
-import { destroyAsset, isCloudinaryConfigured } from './cloudinary.js';
+import { MAX_MEDIA_BYTES, ownedMediaIds } from './media.js';
 
 const ALLOWED_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
 
@@ -49,8 +49,12 @@ export function createApp(overrides = {}) {
       maxAge: 600
     })
   );
-  // Images go to Cloudinary from the browser, so nothing large needs to pass here.
-  app.use(express.json({ limit: '512kb' }));
+  // Uploads arrive as raw bytes on the media route; everything else is JSON.
+  const jsonBody = express.json({ limit: '512kb' });
+  const rawMediaBody = express.raw({ type: () => true, limit: MAX_MEDIA_BYTES });
+  const isMediaUpload = (req) =>
+    req.method === 'POST' && /\/admin\/media\/?$/.test(req.path);
+  app.use((req, res, next) => (isMediaUpload(req) ? rawMediaBody : jsonBody)(req, res, next));
   app.use(securityHeaders);
 
   const ctx = {
@@ -66,7 +70,8 @@ export function createApp(overrides = {}) {
     limiter: overrides.limiter || {
       login: rateLimit({ name: 'login', limit: 8, windowMs: 5 * 60_000, message: 'زیادی تلاش کردید، کمی بعدتر دوباره امتحان کنید' }),
       contact: rateLimit({ name: 'contact', limit: 6, windowMs: 10 * 60_000, message: 'خیلی زود پیام می‌فرستید' }),
-      newsletter: rateLimit({ name: 'newsletter', limit: 8, windowMs: 10 * 60_000, message: 'خیلی زود عضو می‌شوید' })
+      newsletter: rateLimit({ name: 'newsletter', limit: 8, windowMs: 10 * 60_000, message: 'خیلی زود عضو می‌شوید' }),
+      upload: rateLimit({ name: 'upload', limit: 40, windowMs: 60_000, message: 'خیلی سریع تصویر آپلود می‌کنید، کمی صبر کنید' })
     },
     async getAdminFromRequest(req) {
       const token = bearerFrom(req);
@@ -82,14 +87,14 @@ export function createApp(overrides = {}) {
       if (admin.is_active === false) return null;
       return admin;
     },
-    releaseAssets: overrides.releaseAssets || (async (publicIds) => {
-      if (!publicIds.length || !isCloudinaryConfigured(env.cloudinary)) return;
-      for (const publicId of publicIds) {
-        try {
-          await destroyAsset(env.cloudinary, publicId);
-        } catch (err) {
-          console.error('[cloudinary] destroy failed:', publicId, err.message);
-        }
+    releaseMedia: overrides.releaseMedia || (async (ids) => {
+      const owned = ownedMediaIds(ids);
+      if (!owned.length) return;
+      try {
+        await repo.deleteMedia(owned);
+      } catch (err) {
+        // The content row is already gone; orphaned bytes are reported, not fatal.
+        console.error('[media] release failed:', owned.join(', '), err.message);
       }
     })
   };

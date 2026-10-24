@@ -114,6 +114,14 @@ CREATE TABLE IF NOT EXISTS messages (
 
 CREATE INDEX IF NOT EXISTS messages_created_at_idx ON messages (created_at DESC);
 
+CREATE TABLE IF NOT EXISTS media (
+  id           text PRIMARY KEY,
+  content_type text NOT NULL,
+  bytes        integer NOT NULL,
+  data         bytea NOT NULL,
+  created_at   timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS newsletter_subscribers (
   id         text PRIMARY KEY,
   email      text NOT NULL UNIQUE,

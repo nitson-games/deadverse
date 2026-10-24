@@ -58,7 +58,7 @@ describe('admin staff and permissions', () => {
     assert.equal((await request(app).get('/api/admin/articles').set(auth(postman))).status, 403);
     assert.equal((await request(app).get('/api/admin/stats').set(auth(watcher))).status, 200);
     assert.equal((await request(app).get('/api/admin/site').set(auth(watcher))).status, 403);
-    assert.equal((await request(app).post('/api/admin/upload-sign').set(auth(watcher)).send({})).status, 403);
+    assert.equal((await request(app).post('/api/admin/media').set(auth(watcher)).type('image/png').send(Buffer.alloc(0))).status, 403);
   });
 
   it('creates an account that can log in with only its own permissions', async () => {

@@ -1084,7 +1084,7 @@
             <div class="data-card-header"><h3>عملیات داده</h3></div>
             <div style="padding: 24px;">
               <p style="color: var(--text-dim); font-size: 0.88rem; margin-bottom: 20px;">
-                پشتیبان یک فایل JSON است که همه محتوا، پیام‌ها و تنظیمات سایت را از پایگاه داده می‌گیرد. تصاویر به صورت آدرس Cloudinary ذخیره می‌شوند، نه فایل.
+                پشتیبان یک فایل JSON است که همه محتوا، پیام‌ها و تنظیمات سایت را از پایگاه داده می‌گیرد. تصاویر بایت‌بایت در همان دیتابیس ذخیره می‌شوند و داخل این فایل JSON نمی‌آیند — برای پشتیبان کامل، از Neon هم Snapshot بگیر. بازنشانی همه داده‌ها تصاویر را هم پاک می‌کند.
               </p>
               <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                 <button class="btn btn-primary" onclick="exportData()">📥 دانلود پشتیبان (JSON)</button>
@@ -1217,6 +1217,17 @@
         .replace(/&/g, '&amp;').replace(/</g, '&lt;')
         .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+    }
+
+    function formatBytes(count) {
+      const units = ['B', 'KB', 'MB', 'GB'];
+      let value = Number(count) || 0;
+      let unit = 0;
+      while (value >= 1024 && unit < units.length - 1) {
+        value /= 1024;
+        unit += 1;
+      }
+      return `${value.toFixed(unit === 0 || value >= 10 ? 0 : 1)} ${units[unit]}`;
     }
 
     function toast(msg, type) {
@@ -1464,7 +1475,8 @@
     }
 
     function imgCell(src, name) {
-      if (src && /^https:\/\//i.test(src)) return `<img class="thumb" src="${esc(src)}" alt="${esc(name)}" />`;
+      const url = api.mediaSrc(src);
+      if (url) return `<img class="thumb" src="${esc(url)}" alt="${esc(name)}" />`;
       return `<div class="thumb-empty">—</div>`;
     }
 
@@ -1745,22 +1757,26 @@
     };
 
     // ============================================================
-    // IMAGE UPLOAD (browser -> Cloudinary with a server-signed request)
+    // IMAGE UPLOAD (the browser shrinks the picture, the API stores its bytes)
     // ============================================================
+    const MAX_UPLOAD_SIDE = 1600;
+    const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+    const MAX_SOURCE_BYTES = 12 * 1024 * 1024;
+
     function renderImageField(field, value) {
-      const hasImg = !!value;
+      const previewSrc = api.mediaSrc(value);
       return `
         <div class="form-field full">
           <label>${esc(field.label)}</label>
           <div class="img-uploader">
             <div class="img-preview" id="preview_${esc(field.key)}">
-              ${hasImg ? `<img src="${esc(value)}" alt="preview" />` : '<span>بدون تصویر</span>'}
+              ${previewSrc ? `<img src="${esc(previewSrc)}" alt="preview" />` : '<span>بدون تصویر</span>'}
             </div>
             <div class="img-uploader-actions">
               <label class="upload-btn" for="file_${esc(field.key)}">📁 انتخاب تصویر</label>
               <input type="file" id="file_${esc(field.key)}" accept="image/*" style="display:none;" onchange="handleImageUpload(event, '${esc(field.key)}')" />
               <button type="button" class="upload-btn danger" onclick="clearImage('${esc(field.key)}')">🗑 حذف تصویر</button>
-              <div class="upload-hint" id="hint_${esc(field.key)}">فرمت JPG/PNG/WebP — حداکثر ۲ مگابایت</div>
+              <div class="upload-hint" id="hint_${esc(field.key)}">JPG/PNG/WebP — تا ۱۶۰۰ پیکسل، فشرده‌سازی در همین مرورگر</div>
             </div>
           </div>
         </div>
@@ -1777,6 +1793,40 @@
       if (hint) hint.textContent = text;
     }
 
+    function loadImageElement(file) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('این فایل به‌صورت تصویر خوانده نشد')); };
+        img.src = url;
+      });
+    }
+
+    function encodeCanvas(canvas, type, quality) {
+      return new Promise((resolve) => canvas.toBlob(resolve, type, quality));
+    }
+
+    /**
+     * Shrinking happens on this machine, before anything is sent: a poster ends
+     * up around 100-300 KB, which is what makes keeping the bytes next to the
+     * text in the same database sensible.
+     */
+    async function prepareImage(file) {
+      const img = await loadImageElement(file);
+      const scale = Math.min(1, MAX_UPLOAD_SIDE / Math.max(img.naturalWidth, img.naturalHeight));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      const encoded = (await encodeCanvas(canvas, 'image/webp', 0.82))
+        || (await encodeCanvas(canvas, 'image/jpeg', 0.82));
+      if (!encoded) throw new Error('مرورگر این فرمت را پشتیبانی نمی‌کند');
+      // A small source file is already cheaper than a re-encode — send it as is.
+      return encoded.size < file.size ? encoded : file;
+    }
+
     async function handleImageUpload(event, key) {
       const file = event.target.files[0];
       if (!file) return;
@@ -1785,36 +1835,27 @@
         event.target.value = '';
         return;
       }
-      if (file.size > 2 * 1024 * 1024) {
-        toast('حجم تصویر بیش از ۲ مگابایت است', 'error');
+      if (file.size > MAX_SOURCE_BYTES) {
+        toast('حجم فایل اصلی بیش از ۱۲ مگابایت است', 'error');
         event.target.value = '';
         return;
       }
 
-      const hint = 'در حال آپلود…';
-      setHint(key, hint);
+      setHint(key, 'در حال فشرده‌سازی…');
       try {
-        const signResponse = await call('/admin/upload-sign', { method: 'POST', body: { key: 'content' } });
-        const sign = signResponse.data;
-        const form = new FormData();
-        form.append('file', file);
-        form.append('api_key', sign.api_key);
-        form.append('timestamp', String(sign.timestamp));
-        form.append('folder', sign.folder);
-        form.append('signature', sign.signature);
-        form.append('resource_type', 'image');
-
-        const upload = await fetch(sign.upload_endpoint, { method: 'POST', body: form });
-        const result = await upload.json().catch(() => ({}));
-        if (!upload.ok || !result.secure_url) {
-          throw new Error((result.error && result.error.message) || 'آپلود به Cloudinary ناموفق بود');
+        const blob = await prepareImage(file);
+        if (blob.size > MAX_UPLOAD_BYTES) {
+          throw new Error('تصویر فشرده‌شده هنوز بیش از ۴ مگابایت است — ابعاد را کمتر کن');
         }
-        pendingImages[key] = { url: result.secure_url, publicId: result.public_id };
-        setPreview(key, result.secure_url);
-        setHint(key, 'آپلود شد — پس از ذخیره اعمال می‌شود');
+        setHint(key, 'در حال آپلود…');
+        const result = await api.postMedia(blob);
+        pendingImages[key] = { url: result.data.url, publicId: result.data.id };
+        setPreview(key, api.mediaSrc(result.data.url));
+        setHint(key, `آپلود شد (${formatBytes(result.data.bytes)}) — پس از ذخیره اعمال می‌شود`);
       } catch (error) {
         setHint(key, 'آپلود ناموفق بود');
-        if (!error.reported) toast(error.message || 'آپلود تصویر ناموفق بود', 'error');
+        if (error.status === 401) expireSession();
+        else toast(error.message || 'آپلود تصویر ناموفق بود', 'error');
       } finally {
         event.target.value = '';
       }
@@ -2107,7 +2148,9 @@
         ['کمیک‌ها', stats.comics], ['مقالات', stats.articles], ['فیلم‌ها', stats.movies],
         ['شخصیت‌ها', stats.characters], ['اعضای تیم', stats.team],
         ['پیام‌ها', state.messages.length], ['خوانده‌نشده', stats.unread],
-        ['مشترک‌های خبرنامه', stats.subscribers]
+        ['مشترک‌های خبرنامه', stats.subscribers],
+        ['تصویر آپلودشده', stats.mediaCount],
+        ['حجم تصاویر', stats.mediaBytes === undefined ? undefined : formatBytes(stats.mediaBytes)]
       ];
       el.innerHTML = rows.map(([label, value]) =>
         `<div style="display:flex;justify-content:space-between;padding:4px 0;"><span>${esc(label)}</span><span>${value === undefined ? '—' : esc(value)}</span></div>`

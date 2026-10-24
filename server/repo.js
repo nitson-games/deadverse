@@ -112,12 +112,6 @@ function columnValues(entity, data) {
   return values;
 }
 
-/** Assets previously stored for a row — only these are safe to destroy. */
-export function storedAssetIds(entity, row) {
-  if (!row) return [];
-  return entity.images.map((image) => row[image.pid]).filter(Boolean);
-}
-
 export function makeRepo(db) {
   function buildInsert(entity, newId, sortOrder, values, now) {
     const columns = ['id', 'sort_order', 'created_at', 'updated_at', ...Object.keys(values)];
@@ -278,6 +272,38 @@ export function makeRepo(db) {
     async countSubscribers() {
       const { rows } = await db.query('SELECT COUNT(*)::int AS total FROM newsletter_subscribers');
       return rows[0].total;
+    },
+
+    // ------------------------------------------------------------------- media
+    async insertMedia({ id, contentType, bytes, data }) {
+      await db.query(
+        'INSERT INTO media (id, content_type, bytes, data) VALUES ($1, $2, $3, $4)',
+        [id, contentType, bytes, data]
+      );
+      return { id, contentType, bytes };
+    },
+
+    async getMedia(id) {
+      const { rows } = await db.query('SELECT content_type, bytes, data FROM media WHERE id = $1', [id]);
+      return rows[0] || null;
+    },
+
+    async deleteMedia(ids) {
+      if (!ids.length) return 0;
+      const { rowCount } = await db.query('DELETE FROM media WHERE id = ANY($1::text[])', [ids]);
+      return rowCount;
+    },
+
+    async mediaUsage() {
+      const { rows } = await db.query(
+        'SELECT COUNT(*)::int AS count, COALESCE(SUM(bytes), 0)::bigint AS bytes FROM media'
+      );
+      return { count: rows[0].count, bytes: Number(rows[0].bytes) };
+    },
+
+    async clearMedia() {
+      const { rowCount } = await db.query('DELETE FROM media');
+      return rowCount;
     },
 
     // ------------------------------------------------------------------- site

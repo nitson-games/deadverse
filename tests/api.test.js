@@ -3,7 +3,8 @@ import { describe, it } from 'node:test';
 import request from 'supertest';
 import { resetRateLimits } from '../server/rate-limit.js';
 import { SITE_SEED } from '../server/seed.js';
-import { CLOUD_IMG, CLOUD_PID, PASSWORD, boot, tokenFor } from './helpers.js';
+import { EXTERNAL_IMG, EXTERNAL_PID, PASSWORD, PNG_PIXEL, boot, tokenFor } from './helpers.js';
+import { MAX_MEDIA_BYTES } from '../server/media.js';
 
 describe('public API', () => {
   it('answers health', async () => {
@@ -235,11 +236,11 @@ describe('collection CRUD', () => {
       .set(auth)
       .send({
         title_fa: 'ع', title_en: 't', cat: 'news', date_fa: 'مهر ۱۴۰۴', date_en: 'Oct 2026',
-        desc_fa: 'a', desc_en: 'b', coverImage: CLOUD_IMG, coverImagePublicId: CLOUD_PID
+        desc_fa: 'a', desc_en: 'b', coverImage: EXTERNAL_IMG, coverImagePublicId: EXTERNAL_PID
       });
     assert.equal(article.status, 201);
     assert.equal(article.body.cat, 'news');
-    assert.equal(article.body.coverImage, CLOUD_IMG);
+    assert.equal(article.body.coverImage, EXTERNAL_IMG);
 
     const movie = await request(app)
       .post('/api/admin/movies')
@@ -293,53 +294,119 @@ describe('collection CRUD', () => {
   });
 });
 
-describe('Cloudinary assets', () => {
-  it('signs a browser upload', async () => {
+describe('media stored in the database', () => {
+  const upload = (app, token, bytes, type = 'image/png') =>
+    request(app)
+      .post('/api/admin/media')
+      .set('Authorization', `Bearer ${token}`)
+      .type(type)
+      .send(bytes);
+
+  it('stores the bytes and serves them back immutable', async () => {
+    const { app, store } = await boot();
+    const token = await tokenFor(app);
+    const res = await upload(app, token, PNG_PIXEL);
+    assert.equal(res.status, 201, JSON.stringify(res.body));
+    assert.match(res.body.id, /^md_[0-9a-z]+$/);
+    assert.equal(res.body.url, `/api/media/${res.body.id}`);
+    assert.equal(res.body.bytes, PNG_PIXEL.length);
+    assert.ok(store.media.has(res.body.id), 'bytes never reached storage');
+
+    const served = await request(app).get(`/api/media/${res.body.id}`);
+    assert.equal(served.status, 200);
+    assert.equal(served.headers['content-type'], 'image/png');
+    assert.match(served.headers['cache-control'], /public, max-age=31536000, immutable/);
+    assert.deepEqual(served.body, PNG_PIXEL);
+
+    const cached = await request(app).get(`/api/media/${res.body.id}`).set('If-None-Match', served.headers.etag);
+    assert.equal(cached.status, 304);
+  });
+
+  it('takes the type from the file bytes, not the declared content-type', async () => {
     const { app } = await boot();
     const token = await tokenFor(app);
-    const res = await request(app).post('/api/admin/upload-sign').set('Authorization', `Bearer ${token}`).send({ key: 'comics' });
-    assert.equal(res.status, 200);
-    assert.equal(res.body.cloud_name, 'demo');
-    assert.equal(res.body.folder, 'deadverse/comics');
-    assert.match(res.body.signature, /^[0-9a-f]{40}$/);
-    assert.equal(res.body.upload_endpoint, 'https://api.cloudinary.com/v1_1/demo/image/upload');
+    const res = await upload(app, token, PNG_PIXEL, 'image/jpeg');
+    assert.equal(res.status, 201);
+    assert.equal(res.body.contentType, 'image/png');
+    const served = await request(app).get(`/api/media/${res.body.id}`);
+    assert.equal(served.headers['content-type'], 'image/png');
   });
 
-  it('reports 503 when Cloudinary is not configured', async () => {
-    const { app } = await boot({ env: { cloudinary: { cloudName: '', apiKey: '', apiSecret: '', folder: 'deadverse' } } });
+  it('rejects anything that is not a picture', async () => {
+    const { app, store } = await boot();
     const token = await tokenFor(app);
-    const res = await request(app).post('/api/admin/upload-sign').set('Authorization', `Bearer ${token}`).send({ key: 'comics' });
-    assert.equal(res.status, 503);
+    const html = await upload(app, token, Buffer.from('<html><script>alert(1)</script></html>'));
+    assert.equal(html.status, 400);
+    const empty = await upload(app, token, Buffer.alloc(0));
+    assert.equal(empty.status, 400);
+    const oversized = await upload(app, token, Buffer.alloc(MAX_MEDIA_BYTES + 1));
+    assert.equal(oversized.status, 413);
+    assert.equal(store.media.size, 0, 'a rejected upload must not leave bytes behind');
   });
 
-  it('destroys the replaced picture only', async () => {
-    const { app, released } = await boot();
+  it('needs a signed-in account with the content permission', async () => {
+    const { app } = await boot();
+    assert.equal((await request(app).post('/api/admin/media').type('image/png').send(PNG_PIXEL)).status, 401);
+    assert.equal((await request(app).get('/api/media/md_doesnotexist')).status, 404);
+    assert.equal((await request(app).get('/api/media/md_NOT_VALID')).status, 404);
+  });
+
+  it('frees the old bytes when a picture is replaced, not when text is edited', async () => {
+    const { app, store } = await boot();
     const token = await tokenFor(app);
     const auth = { Authorization: `Bearer ${token}` };
+    const first = await upload(app, token, PNG_PIXEL);
+    const second = await upload(app, token, PNG_PIXEL);
 
     const created = await request(app)
       .post('/api/admin/comics')
       .set(auth)
-      .send({ title_fa: 'ت', title_en: 't', publisher: 'DC', year: 2000, image: CLOUD_IMG, imagePublicId: CLOUD_PID });
+      .send({
+        title_fa: 'ت', title_en: 't', publisher: 'DC', year: 2000,
+        image: first.body.url, imagePublicId: first.body.id
+      });
+    assert.equal(created.status, 201);
 
     const replaced = await request(app)
       .put(`/api/admin/comics/${created.body.id}`)
       .set(auth)
-      .send({ ...created.body, image: 'https://res.cloudinary.com/demo/image/upload/deadverse/comics/two.jpg', imagePublicId: 'deadverse/comics/two' });
+      .send({ ...created.body, image: second.body.url, imagePublicId: second.body.id });
     assert.equal(replaced.status, 200);
-    assert.deepEqual(released, [CLOUD_PID], 'old asset released once');
+    assert.ok(!store.media.has(first.body.id), 'the replaced picture still holds bytes');
+    assert.ok(store.media.has(second.body.id));
 
-    released.length = 0;
-    const editedNoUpload = await request(app)
+    const textOnly = await request(app)
       .put(`/api/admin/comics/${created.body.id}`)
       .set(auth)
-      .send({ ...replaced.body, imagePublicId: '' });
-    assert.equal(editedNoUpload.status, 200);
-    assert.deepEqual(released, [], 're-typing the title must not delete the cover');
+      .send({ ...replaced.body, title_fa: 'ت ویرایش' });
+    assert.equal(textOnly.status, 200);
+    assert.ok(store.media.has(second.body.id), 're-typing the title must not delete the cover');
+    assert.equal(textOnly.body.image, second.body.url);
 
-    released.length = 0;
     await request(app).delete(`/api/admin/comics/${created.body.id}`).set(auth);
-    assert.deepEqual(released, ['deadverse/comics/two'], 'deleting the record deletes the asset');
+    assert.ok(!store.media.has(second.body.id), 'deleting the record must free the picture');
+  });
+
+  it('keeps a /api/media reference through export and import', async () => {
+    const { app, store } = await boot();
+    const token = await tokenFor(app);
+    const auth = { Authorization: `Bearer ${token}` };
+    const uploaded = await upload(app, token, PNG_PIXEL);
+    await request(app)
+      .post('/api/admin/comics')
+      .set(auth)
+      .send({ title_fa: 'ت', title_en: 't', publisher: 'DC', year: 2000, image: uploaded.body.url, imagePublicId: uploaded.body.id });
+
+    const backup = await request(app).get('/api/admin/export').set(auth);
+    const restored = await request(app).post('/api/admin/import').set(auth).send(backup.body);
+    assert.equal(restored.status, 200, JSON.stringify(restored.body));
+    assert.deepEqual(restored.body.warnings, []);
+
+    const comics = await request(app).get('/api/bootstrap');
+    const withImage = comics.body.comics.find((c) => c.image === uploaded.body.url);
+    assert.ok(withImage, 'the imported row lost its picture');
+    const served = await request(app).get(`/api/media/${uploaded.body.id}`);
+    assert.equal(served.status, 200, 'imported reference does not resolve');
   });
 });
 
