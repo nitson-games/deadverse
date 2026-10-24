@@ -135,6 +135,13 @@
       color: #ff6b7a; padding: 3px 8px; border-radius: 20px;
       font-weight: 700; letter-spacing: 0.5px;
     }
+    .env-tag {
+      padding: 7px 20px; border-bottom: 1px solid var(--border);
+      font-size: 0.66rem; color: var(--text-dim);
+      direction: ltr; text-align: right; word-break: break-all;
+    }
+    .env-tag[data-env="local"] { color: #ffb454; }
+    .env-tag[data-env="production"] { color: #6ee7a8; }
     .sidebar-nav {
       flex: 1; overflow-y: auto; padding: 16px 12px;
     }
@@ -615,6 +622,7 @@
         <div class="sidebar-logo">DEAD<span>VERSE</span></div>
         <span class="sidebar-badge">ADMIN</span>
       </div>
+      <div class="env-tag" id="envTag" title="کدام نسخه از سایت را ویرایش می‌کنید"></div>
       <nav class="sidebar-nav" id="sidebarNav">
         <div class="nav-section-label">اصلی</div>
         <button class="sidebar-link active" data-page="dashboard"><span class="icon">◈</span> داشبورد</button>
@@ -2457,7 +2465,20 @@
     // ============================================================
     // INIT — a stored token is verified against the server before the panel opens
     // ============================================================
+    function showEnvTag() {
+      const tag = document.getElementById('envTag');
+      const env = window.DEADVERSE.environment();
+      tag.dataset.env = env;
+      const label = {
+        local: 'نسخه‌ی لوکال',
+        production: 'نسخه‌ی زنده (Vercel)',
+        external: 'آدرس دستی'
+      }[env];
+      tag.textContent = `${label} • ${window.DEADVERSE.apiBase}`;
+    }
+
     async function init() {
+      showEnvTag();
       document.body.setAttribute('data-lang', currentLang);
       document.body.setAttribute('dir', 'rtl');
       if (!window.DEADVERSE.token()) {

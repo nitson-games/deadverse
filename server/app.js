@@ -7,6 +7,7 @@ import { rateLimit } from './rate-limit.js';
 import { makeRepo } from './repo.js';
 import { buildRoutes } from './routes.js';
 import { MAX_MEDIA_BYTES, ownedMediaIds } from './media.js';
+import { servePages } from './pages.js';
 
 const ALLOWED_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
 
@@ -100,6 +101,8 @@ export function createApp(overrides = {}) {
   };
 
   const router = buildRoutes(ctx);
+  // Local dev only: the deployed copy is static and Vercel does these rewrites.
+  if (overrides.pagesRoot) app.use(servePages({ rootDir: overrides.pagesRoot }));
   app.use('/api', router);
   // Some hosts hand the function the rewritten path; keep the bare mount so the
   // same app works behind any proxy that strips the /api prefix.

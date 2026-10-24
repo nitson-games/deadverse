@@ -1636,9 +1636,10 @@
         notice.hidden = true;
         return;
       }
+      const api = window.DEADVERSE ? window.DEADVERSE.apiBase : '';
       notice.textContent = currentLang === 'fa'
-        ? 'اتصال به سرور برقرار نشد — محتوای نمایشی در حال نمایش است.'
-        : 'Could not reach the server — showing built-in content.';
+        ? `اتصال به سرور برقرار نشد (${api}) — محتوای نمایشی در حال نمایش است. نسخه‌ی واقعی: https://deadverse-eight.vercel.app`
+        : `Could not reach the server (${api}) — showing built-in content. Live site: https://deadverse-eight.vercel.app`;
       notice.hidden = false;
     }
 

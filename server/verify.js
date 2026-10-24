@@ -29,6 +29,7 @@ function api(path) {
 }
 
 let base = '';
+let origin = '';
 let server = null;
 let db = null;
 
@@ -97,7 +98,8 @@ async function fetchMedia(id) {
 
 async function main() {
   if (REMOTE) {
-    base = `${REMOTE.replace(/\/+$/, '')}/api`;
+    origin = REMOTE.replace(/\/+$/, '');
+    base = `${origin}/api`;
     console.log(`\nDEADVERSE verify — حالت راه دور: ${base}`);
   } else {
     if (!process.env.DATABASE_URL) {
@@ -108,11 +110,12 @@ async function main() {
     const { createDb } = await import('./db.js');
     const { makeRepo } = await import('./repo.js');
     db = createDb();
-    const app = createApp({ db, repo: makeRepo(db) });
+    const app = createApp({ db, repo: makeRepo(db), pagesRoot: process.cwd() });
     server = await new Promise((resolve) => {
       const listening = app.listen(0, '127.0.0.1', () => resolve(listening));
     });
-    base = `http://127.0.0.1:${server.address().port}/api`;
+    origin = `http://127.0.0.1:${server.address().port}`;
+    base = `${origin}/api`;
     console.log(`\nDEADVERSE verify — Neon: ${mask(process.env.DATABASE_URL)}`);
   }
 
@@ -122,6 +125,26 @@ async function main() {
     const res = await call('/health');
     assert.equal(res.status, 200);
     assert.equal(res.body.ok, true);
+  });
+
+  await check('سایت در / و پنل در /admin باز می‌شود', async () => {
+    const site = await fetch(`${origin}/`);
+    assert.equal(site.status, 200, 'صفحه‌ی اصلی پیدا نشد');
+    assert.match(site.headers.get('content-type') || '', /text\/html/);
+    assert.ok((await site.text()).includes('DEADVERSE'), 'عنوان سایت در صفحه نیست');
+
+    const panel = await fetch(`${origin}/admin`);
+    assert.equal(panel.status, 200, 'پنل باید روی مسیر تمیز /admin باز شود');
+    assert.match((await panel.text()), /id="loginScreen"/, 'فرم ورود پنل در /admin نیست');
+  });
+
+  await check('آدرس قدیمی پنل به /admin ریدایرکت می‌شود و فایل‌های خصوصی خوانده نمی‌شوند', async () => {
+    const old = await fetch(`${origin}/adminpanel.html`, { redirect: 'manual' });
+    assert.equal(old.status, 307, '/adminpanel.html باید به /admin برود');
+    assert.equal(old.headers.get('location'), '/admin');
+    for (const path of ['/.env', '/.env.local', '/package.json']) {
+      assert.equal((await fetch(`${origin}${path}`)).status, 404, `${path} از طریق HTTP قابل خواندن است`);
+    }
   });
 
   await check('/api/bootstrap هر شش بخش را برمی‌گرداند', async () => {
@@ -271,6 +294,25 @@ async function main() {
       assert.equal(res.status, 401);
     });
 
+    /** A run stopped with Ctrl+C leaves its rows behind, so every start sweeps
+        the marker rows of earlier runs — except the two this run still needs. */
+    await check('ردپای اجراهای نیمه‌تمام قبلی پاک می‌شود', async () => {
+      const subscribers = await call('/admin/subscribers', { token });
+      assert.equal(subscribers.status, 200);
+      for (const item of subscribers.body) {
+        if (item.email === newsletterProbe) continue;
+        if (!/^newsletter-verify-\d+@deadverse\.test$/.test(item.email)) continue;
+        assert.equal((await call(`/admin/subscribers/${item.id}`, { method: 'DELETE', token })).status, 200);
+      }
+
+      const messages = await call('/admin/messages', { token });
+      assert.equal(messages.status, 200);
+      for (const item of messages.body) {
+        if (item.id === messageId || !/^verify-\d+@verify\.local$/.test(item.email)) continue;
+        assert.equal((await call(`/admin/messages/${item.id}`, { method: 'DELETE', token })).status, 200);
+      }
+    });
+
     await check('مشترک خبرنامه از پنل حذف می‌شود (ردپای تست پاک می‌ماند)', async () => {
       const list = await call('/admin/subscribers', { token });
       assert.equal(list.status, 200);
@@ -360,6 +402,11 @@ async function main() {
     await check('تنظیمات سایت ذخیره و به مقدار قبلی برگشت', async () => {
       const before = await call('/admin/site', { token });
       assert.equal(before.status, 200);
+      /** An interrupted run can leave its marker in the copy; clearing it first
+          means the revert restores clean text instead of stacking suffixes. */
+      for (const key of Object.keys(before.body)) {
+        if (typeof before.body[key] === 'string') before.body[key] = before.body[key].replace(/·verify/g, '');
+      }
       const probe = {
         ...before.body,
         heroSub_fa: `${before.body.heroSub_fa}·verify`,

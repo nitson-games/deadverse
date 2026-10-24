@@ -49,6 +49,16 @@
 
   window.DEADVERSE = {
     apiBase: resolve(),
+    /**
+     * Which copy the browser is really running. People keep mixing the local
+     * files with the deployed site, so the pages show this instead of guessing.
+     */
+    environment: function () {
+      var base = window.DEADVERSE.apiBase;
+      if (/127\.0\.0\.1|localhost/.test(base)) return 'local';
+      if (base === '/api') return 'production';
+      return 'external';
+    },
     // GET with no auth; every other call goes through request().
     get: function (path) {
       return window.DEADVERSE.request(path, { method: 'GET' });

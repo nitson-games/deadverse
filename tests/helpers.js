@@ -35,7 +35,7 @@ const noLimiter = {
   upload: (req, res, next) => next()
 };
 
-export async function boot({ env = {}, admins = [{ username: 'admin', password: PASSWORD }] } = {}) {
+export async function boot({ env = {}, admins = [{ username: 'admin', password: PASSWORD }], pagesRoot = null } = {}) {
   const store = createStore();
   const repo = makeFakeRepo(store);
   for (const admin of admins) {
@@ -56,7 +56,8 @@ export async function boot({ env = {}, admins = [{ username: 'admin', password: 
     repo,
     env: baseEnv(env),
     limiter: env.useRealLimiter ? undefined : noLimiter,
-    withTransaction: async (fn) => fn(repo)
+    withTransaction: async (fn) => fn(repo),
+    pagesRoot
   });
   return { app, repo, store };
 }
