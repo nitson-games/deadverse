@@ -98,24 +98,20 @@ npm run verify     # ۳۲ بررسی کامل روی دیتابیس واقعی (
 
 ## ۴. دیپلوی روی Vercel
 
-دو راه دارد؛ هر دو تست شده‌اند:
-
-**الف) از همین پوشه‌ی لوکال (بدون گیت‌هاب — چیزی که الان استفاده شده):**
+پروژه‌ی Vercel به ریپوی گیت‌هاب `nitson-games/deadverse` متصل است: **هر `git push` روی `main` یک build جدید می‌سازد و جای نسخه‌ی قبلی را می‌گیرد** — کاری روی داشبورد نداری. آدرس production: `https://deadverse-eight.vercel.app` و پنل: `https://deadverse-eight.vercel.app/admin`. بعد از پوش چند لحظه صبر کن و بعد تأیید کن:
 
 ```bash
-export VERCEL_TOKEN=...                      # فقط در محیط، نه در فایل تحت git
-npx vercel link --project deadverse --yes
-npx vercel env add JWT_SECRET production     # مقدار را از stdin می‌خواند، با پولد pipe کن
-printf '%s\n' "https://<آدرس>.vercel.app,https://nitson-games.github.io" | npx vercel env add ALLOWED_ORIGINS production
-npx vercel deploy --prod --yes
+curl -s https://deadverse-eight.vercel.app/api/health
 ```
 
-**ب) از ریپوی گیت‌هاب:** ریپو باید `api/`، `server/`، `config.js`، `vercel.json` و `package.json` را داشته باشد (در نسخه‌ی فعلی هنوز پوش نشده‌اند). بعد Import → Framework: **Other**، Build/Output: **خالی** — هر مسیر `/api/*` با `vercel.json` به همان تابع می‌رسد.
+اگر نسخه‌ی تازه بالا نیامد، در داشبورد → Projects → Deployments لاگ build را بخوان (معمولاً خطای `runtime` یا یک متغیر Environment Variables جاافتاده).
+
+**اگر روزی از صفر پروژه‌ی دیگری بسازی:** Import ریپو → Framework: **Other**، Build/Output: **خالی** — هر مسیر `/api/*` با `vercel.json` به همان تابع می‌رسد؛ ریپو باید `api/`، `server/`، `config.js`، `vercel.json` و `package.json` را داشته باشد.
 
 نکته‌هایی که موقع دیپلوی این پروژه به آن بر خوردیم:
 - در `vercel.json` **نویس `"runtime": "nodejs20.x"` ممنوع**؛ build با خطای `Function Runtimes must have a valid version` می‌میرد. نسخه‌ی Node را Vercel انتخاب می‌کند (و `engines.node` در `package.json` راهنمای آن است). `memory` هم با صورت‌حساب Fluid Compute نادیده گرفته می‌شود.
-- `.vercelignore` جلوی آپلود `.env*`، `tests/` و پوشه‌های ابزار را می‌گیرد. بعد از دیپلوی چک کن: `curl -I https://<آدرس>/.env` باید **۴۰۴** بدهد.
-- «Deployment Protection» روی پروژه روشن است ولی فقط **preview URL**ها را قفل می‌کند؛ آدرس production برای بازدیدکننده‌ی ناشناس باز است (با `curl -i https://<آدرس>/api/health` تأییدشده).
+- `.vercelignore` جلوی آپلود `.env*`، `tests/` و پوشه‌های ابزار را می‌گیرد. بعد از دیپلوی چک کن: `curl -I https://deadverse-eight.vercel.app/.env` باید **۴۰۴** بدهد.
+- «Deployment Protection» روی پروژه روشن است ولی فقط **preview URL**ها را قفل می‌کند؛ آدرس production برای بازدیدکننده‌ی ناشناس باز است (با `curl -i https://deadverse-eight.vercel.app/api/health` تأییدشده).
 
 متغیرهای لازم روی Vercel (محیط Production):
 
@@ -132,7 +128,7 @@ npx vercel deploy --prod --yes
 بعد از دیپلوی، از همان ماشین تست راه دور:
 
 ```bash
-npm run verify -- https://<آدرس>.vercel.app
+npm run verify -- https://deadverse-eight.vercel.app
 ```
 
 هر رکوردی که `verify` می‌سازد (کمیک، مقاله، پیام، مشترک خبرنامه، تصویر) در پایان همان اجرا از طریق endpoint های واقعیِ ادمین حذف می‌شود، پس دیتابیس پس از تست تمیز می‌ماند.
@@ -142,7 +138,7 @@ npm run verify -- https://<آدرس>.vercel.app
 سایت و API الان **هر دو روی Vercel** هستند، پس `config.js` خودکار `/api` (هم‌ریشه) را انتخاب می‌کند و چیزی لازم نیست. اگر نسخه‌ی GitHub Pages را هم می‌خواهی، `API_BASE` باید آدرس کامل ورسِل باشد:
 
 ```js
-var API_BASE = 'https://<آدرس>.vercel.app/api';
+var API_BASE = 'https://deadverse-eight.vercel.app/api';
 ```
 
 قاعده انتخاب آدرس در `resolve()` این است (نیازی به تغییر ندارد، فقط بدانی):
@@ -152,7 +148,7 @@ var API_BASE = 'https://<آدرس>.vercel.app/api';
 - دامنه روی `*.vercel.app` یا `*.netlify.app` → `/api` (هم‌ریشه).
 - بقیه (GitHub Pages) → همان `API_BASE`.
 
-پنل ادمین: `https://<آدرس>/admin` — آدرس تمیز، بدون `.html` (rewrite در `vercel.json`). `/adminpanel.html` هم کار می‌کند ولی به `/admin` ریدایرکت می‌شود. صفحه هیچ لینکی به پنل ندارد و با `noindex` از ایندکس گوگل بیرون می‌ماند؛ برای ورود فقط خود `/admin` را تایپ کن.
+پنل ادمین: `https://deadverse-eight.vercel.app/admin` — آدرس تمیز، بدون `.html` (rewrite در `vercel.json`). `/adminpanel.html` هم کار می‌کند ولی به `/admin` ریدایرکت می‌شود. صفحه هیچ لینکی به پنل ندارد و با `noindex` از ایندکس گوگل بیرون می‌ماند؛ برای ورود فقط خود `/admin` را تایپ کن.
 
 ## ۶. لایه‌ی اتصال و امنیت
 
