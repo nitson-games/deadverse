@@ -23,6 +23,10 @@
     {
       "source": "/admin",
       "destination": "/admin.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/api/index"
     }
   ]
 }
