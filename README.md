@@ -119,7 +119,7 @@ curl -s https://deadverse.vercel.app/api/health
 نکته‌هایی که موقع دیپلوی این پروژه به آن بر خوردیم:
 - در `vercel.json` **نویس `"runtime": "nodejs20.x"` ممنوع**؛ build با خطای `Function Runtimes must have a valid version` می‌میرد. نسخه‌ی Node را Vercel انتخاب می‌کند (و `engines.node` در `package.json` راهنمای آن است). `memory` هم با صورت‌حساب Fluid Compute نادیده گرفته می‌شود.
 - `.vercelignore` جلوی آپلود `.env*`، `tests/` و پوشه‌های ابزار را می‌گیرد. بعد از دیپلوی چک کن: `curl -I https://deadverse.vercel.app/.env` باید **۴۰۴** بدهد.
-- ریشه‌ی استاتیک دیپلوی **`public/` است، نه کل ریپو**. `outputDirectory: "."` باعث می‌شد `/server/app.js` و `/server/routes.js` مستقیم دانلود شوند (کد منبع لو می‌رفت؛ راز نبود، چون رمزها در Environment Variable هاست). `npm run build` فقط فایل‌های همان لیست `server/pages.js` را در `public/` می‌گذارد، پس لوکال و پروداکشن یک مجموعه‌صفحه دارند و `npm run verify` هم `/server/app.js` را بین مسیرهای ۴۰۴ چک می‌کند.
+- ریشه‌ی استاتیک دیپلوی **`public/` است، نه کل ریپو**. `outputDirectory: "."` باعث می‌شد `/server/app.js` و `/server/routes.js` مستقیم دانلود شوند (کد منبع لو می‌رفت؛ راز نبود، چون رمزها در Environment Variable هاست). `npm run build` فقط فایل‌های همان لیست `server/pages.js` را در `public/` می‌گذارد (به‌علاوه‌ی یک `404.html`؛ بدون آن فایل، Vercel هر مسیرِ نبوده را با `index.html` و وضعیت ۲۰۰ جواب می‌داد)، پس لوکال و پروداکشن یک مجموعه‌صفحه دارند و `npm run verify` هم `/server/app.js` و یک مسیر ساختگی را بین پاسخ‌های ۴۰۴ چک می‌کند.
 - «Deployment Protection» روی پروژه روشن است ولی فقط **preview URL**ها را قفل می‌کند؛ آدرس production برای بازدیدکننده‌ی ناشناس باز است (با `curl -i https://deadverse.vercel.app/api/health` تأییدشده).
 
 متغیرهای لازم روی Vercel (محیط Production):

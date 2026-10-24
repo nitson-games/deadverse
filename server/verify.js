@@ -142,7 +142,7 @@ async function main() {
     const old = await fetch(`${origin}/adminpanel.html`, { redirect: 'manual' });
     assert.equal(old.status, 307, '/adminpanel.html باید به /admin برود');
     assert.equal(old.headers.get('location'), '/admin');
-    for (const path of ['/.env', '/.env.local', '/package.json', '/server/app.js', '/server/verify.js', '/scripts/build-site.js']) {
+    for (const path of ['/.env', '/.env.local', '/package.json', '/server/app.js', '/server/verify.js', '/scripts/build-site.js', '/zzz-not-real']) {
       assert.equal((await fetch(`${origin}${path}`)).status, 404, `${path} از طریق HTTP قابل خواندن است`);
     }
   });
