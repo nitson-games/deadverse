@@ -1,0 +1,485 @@
+import { Router } from 'express';
+import { ApiError, badRequest, conflict, h, notFound, unauthorized } from './errors.js';
+import {
+  parseEntityInput,
+  siteSchema,
+  contactSchema,
+  newsletterSchema,
+  loginSchema,
+  changePasswordSchema
+} from './validate.js';
+import { buildUploadSignature, destroyAsset, endpoint, isCloudinaryConfigured } from './cloudinary.js';
+import { hashPassword, signToken, verifyPassword } from './auth.js';
+import {
+  PERMISSIONS,
+  PERMISSION_LABELS,
+  hasPermission,
+  normalizePermissions
+} from './permissions.js';
+import { adminPasswordSchema, adminProfileSchema, createAdminSchema } from './validate.js';
+import { ENTITIES } from './repo.js';
+import { SEEDS, SITE_SEED, EMPTY_SITE_CLIENT, seedInputs } from './seed.js';
+
+const COLLECTIONS = {
+  comics: 'comic',
+  articles: 'article',
+  movies: 'movie',
+  characters: 'character',
+  team: 'team'
+};
+
+export { SEEDS, SITE_SEED };
+
+function validationError(error) {
+  return badRequest(
+    'لطفاً فیلدها را بررسی کنید',
+    error.issues.map((issue) => ({ field: issue.path.join('.') || '(root)', message: issue.message }))
+  );
+}
+
+/** Data URIs are leftovers from the localStorage era and cannot be stored. */
+const isStorableImage = (value) => typeof value === 'string' && /^https:\/\//i.test(value);
+
+/**
+ * A stored asset is released when its slot now holds a different URL (or none).
+ * Comparing URLs rather than public ids means an edit that never re-uploaded
+ * cannot accidentally delete the picture still on screen.
+ */
+function orphanedAssetIds(type, oldRow, nextInput) {
+  const released = [];
+  for (const image of ENTITIES[type].images) {
+    const previousPid = oldRow?.[image.pid] || '';
+    const previousUrl = oldRow?.[image.url] || '';
+    const nextUrl = nextInput[image.input] || '';
+    if (previousPid && previousUrl !== nextUrl) released.push(previousPid);
+  }
+  return released;
+}
+
+/** Keep the stored public id when the picture itself was not replaced. */
+function carryOverPids(type, oldRow, input) {
+  for (const image of ENTITIES[type].images) {
+    if (!input[image.pidInput] && input[image.input] && input[image.input] === oldRow[image.url]) {
+      input[image.pidInput] = oldRow[image.pid];
+    }
+  }
+  return input;
+}
+
+export function buildRoutes(ctx) {
+  const { repo, env } = ctx;
+  const router = Router();
+
+  const requireAdmin = h(async (req, res, next) => {
+    const admin = await ctx.getAdminFromRequest(req);
+    if (!admin) throw unauthorized('برای این کار باید وارد شوید');
+    req.admin = admin;
+    return next();
+  });
+
+  /** Same as requireAdmin, plus one permission key. Runs on every request, so
+      revoking a permission logs that account out of the affected pages at once. */
+  const requirePermission = (permission) =>
+    h(async (req, res, next) => {
+      const admin = await ctx.getAdminFromRequest(req);
+      if (!admin) throw unauthorized('برای این کار باید وارد شوید');
+      req.admin = admin;
+      if (!hasPermission(admin, permission)) {
+        throw new ApiError(403, 'forbidden', `دسترسی «${permission}» برای حساب شما فعال نیست`);
+      }
+      return next();
+    });
+
+  // --------------------------------------------------------------- public API
+  router.get('/health', (req, res) => {
+    res.json({ ok: true, service: 'deadverse-api', time: new Date().toISOString() });
+  });
+
+  router.get(
+    '/bootstrap',
+    h(async (req, res) => {
+      const [comics, articles, movies, characters, team, site] = await Promise.all([
+        repo.list('comic'),
+        repo.list('article'),
+        repo.list('movie'),
+        repo.list('character'),
+        repo.list('team'),
+        repo.getSite()
+      ]);
+      res.set('Cache-Control', 'public, max-age=20, must-revalidate');
+      res.json({
+        site: site || EMPTY_SITE_CLIENT,
+        comics,
+        articles,
+        movies,
+        characters,
+        team
+      });
+    })
+  );
+
+  router.post(
+    '/contact',
+    ctx.limiter.contact,
+    h(async (req, res) => {
+      const parsed = contactSchema.safeParse(req.body);
+      if (!parsed.success) throw validationError(parsed.error);
+      const inserted = await repo.insertMessage(parsed.data);
+      res.status(201).json({ ok: true, id: inserted });
+    })
+  );
+
+  router.post(
+    '/newsletter',
+    ctx.limiter.newsletter,
+    h(async (req, res) => {
+      const parsed = newsletterSchema.safeParse(req.body);
+      if (!parsed.success) throw badRequest('ایمیل معتبر نیست');
+      const result = await repo.subscribe(parsed.data.email);
+      res.status(result.created ? 201 : 200).json({ ok: true, already_subscribed: !result.created });
+    })
+  );
+
+  // -------------------------------------------------------------- admin: auth
+  router.post(
+    '/admin/login',
+    ctx.limiter.login,
+    h(async (req, res) => {
+      const parsed = loginSchema.safeParse(req.body);
+      if (!parsed.success) throw badRequest('نام کاربری و رمز عبور لازم است');
+      const admin = await repo.findAdminByUsername(parsed.data.username);
+      const passwordOk = admin ? await verifyPassword(parsed.data.password, admin.password_hash) : false;
+      if (!passwordOk) throw unauthorized('نام کاربری یا رمز عبور اشتباه است');
+      if (admin.is_active === false) throw unauthorized('این حساب غیرفعال شده است');
+      const token = signToken(admin, { secret: env.jwtSecret, ttl: env.tokenTtl });
+      res.json({
+        token,
+        username: admin.username,
+        displayName: admin.display_name,
+        permissions: Array.isArray(admin.permissions) ? admin.permissions : [],
+        permissionLabels: PERMISSION_LABELS
+      });
+    })
+  );
+
+  router.get('/admin/session', requireAdmin, (req, res) => {
+    res.json({
+      username: req.admin.username,
+      displayName: req.admin.display_name,
+      permissions: Array.isArray(req.admin.permissions) ? req.admin.permissions : [],
+      permissionLabels: PERMISSION_LABELS
+    });
+  });
+
+  router.post(
+    '/admin/change-password',
+    requireAdmin,
+    ctx.limiter.login,
+    h(async (req, res) => {
+      const parsed = changePasswordSchema.safeParse(req.body);
+      if (!parsed.success) throw validationError(parsed.error);
+      const currentOk = await verifyPassword(parsed.data.current_password, req.admin.password_hash);
+      if (!currentOk) throw badRequest('رمز فعلی اشتباه است');
+      await repo.updateAdminPassword(req.admin.id, await hashPassword(parsed.data.new_password));
+      res.json({ ok: true, message: 'رمز تغییر کرد و همه نشست‌های قبلی باطل شدند' });
+    })
+  );
+
+  // -------------------------------------------------------- admin: admin staff
+  const canManageStaff = requirePermission('admins');
+
+  /** Rows carry password_hash; nothing from that column may leave the API. */
+  const publicAdmin = (row) => ({
+    id: row.id,
+    username: row.username,
+    display_name: row.display_name,
+    permissions: Array.isArray(row.permissions) ? row.permissions : [],
+    is_active: row.is_active !== false,
+    created_at: row.created_at,
+    updated_at: row.updated_at
+  });
+
+  router.get('/admin/admins', canManageStaff, h(async (req, res) => {
+    const rows = await repo.listAdmins();
+    res.json({
+      items: rows.map(publicAdmin),
+      permissions: PERMISSIONS.map((key) => ({ key, label: PERMISSION_LABELS[key] }))
+    });
+  }));
+
+  router.post(
+    '/admin/admins',
+    canManageStaff,
+    ctx.limiter.login,
+    h(async (req, res) => {
+      const parsed = createAdminSchema.safeParse(req.body);
+      if (!parsed.success) throw validationError(parsed.error);
+      if (await repo.findAdminByUsername(parsed.data.username)) {
+        throw conflict('این نام کاربری از قبل استفاده شده است');
+      }
+      const created = await repo.createAdmin({
+        username: parsed.data.username,
+        passwordHash: await hashPassword(parsed.data.password),
+        displayName: parsed.data.display_name,
+        permissions: normalizePermissions(parsed.data.permissions)
+      });
+      res.status(201).json(publicAdmin(created));
+    })
+  );
+
+  router.put('/admin/admins/:id', canManageStaff, h(async (req, res) => {
+    const target = await repo.findAdminById(req.params.id);
+    if (!target) throw notFound('این ادمین وجود ندارد یا حذف شده است');
+    const parsed = adminProfileSchema.safeParse(req.body);
+    if (!parsed.success) throw validationError(parsed.error);
+
+    const permissions = normalizePermissions(parsed.data.permissions);
+    const isSelf = req.admin.id === target.id;
+    // Editing yourself could strip the very permission that lets you edit staff,
+    // so account changes always go through another admin.
+    if (isSelf && (parsed.data.is_active === false || permissions.join() !== normalizePermissions(req.admin.permissions).join())) {
+      throw badRequest('دسترسی یا وضعیت حساب خودتان را نمی‌توانید تغییر دهید');
+    }
+    // The requester is an active admin holding this permission and cannot edit
+    // their own row, so at least one manager always survives.
+    const updated = await repo.updateAdminProfile(target.id, {
+      displayName: parsed.data.display_name,
+      permissions: isSelf ? (Array.isArray(target.permissions) ? target.permissions : []) : permissions,
+      isActive: isSelf ? target.is_active !== false : parsed.data.is_active,
+      logoutEverywhere: !isSelf
+    });
+    res.json(publicAdmin(updated));
+  }));
+
+  router.post(
+    '/admin/admins/:id/password',
+    canManageStaff,
+    ctx.limiter.login,
+    h(async (req, res) => {
+      const target = await repo.findAdminById(req.params.id);
+      if (!target) throw notFound('این ادمین وجود ندارد یا حذف شده است');
+      const parsed = adminPasswordSchema.safeParse(req.body);
+      if (!parsed.success) throw validationError(parsed.error);
+      if (req.admin.id === target.id) {
+        throw badRequest('برای تغییر رمز خودتان از بخش «رمز عبور» و با رمز فعلی استفاده کنید');
+      }
+      await repo.updateAdminPassword(target.id, await hashPassword(parsed.data.password));
+      res.json({ ok: true, message: 'رمز عوض شد و نشست‌های آن حساب باطل شد' });
+    })
+  );
+
+  router.delete('/admin/admins/:id', canManageStaff, h(async (req, res) => {
+    const target = await repo.findAdminById(req.params.id);
+    if (!target) throw notFound('این ادمین وجود ندارد یا حذف شده است');
+    if (req.admin.id === target.id) throw badRequest('حساب خودتان را نمی‌توانید حذف کنید');
+    if (!(await repo.deleteAdmin(target.id))) throw notFound('این ادمین وجود ندارد یا حذف شده است');
+    res.json({ ok: true });
+  }));
+
+  // ------------------------------------------------------ admin: collections
+  const canContent = requirePermission('content');
+
+  for (const [collection, type] of Object.entries(COLLECTIONS)) {
+    router.get(`/admin/${collection}`, canContent, h(async (req, res) => {
+      res.json(await repo.list(type));
+    }));
+
+    router.post(`/admin/${collection}`, canContent, h(async (req, res) => {
+      const input = parseEntityInput(type, req.body);
+      res.status(201).json(await repo.create(type, input));
+    }));
+
+    router.put(`/admin/${collection}/:id`, canContent, h(async (req, res) => {
+      const input = parseEntityInput(type, req.body);
+      const oldRow = await repo.findRaw(type, req.params.id);
+      if (!oldRow) throw notFound('این مورد وجود ندارد یا حذف شده است');
+      const updated = await repo.update(type, req.params.id, carryOverPids(type, oldRow, input));
+      await ctx.releaseAssets(orphanedAssetIds(type, oldRow, input));
+      res.json(updated);
+    }));
+
+    router.delete(`/admin/${collection}/:id`, canContent, h(async (req, res) => {
+      const oldRow = await repo.findRaw(type, req.params.id);
+      if (!oldRow) throw notFound('این مورد وجود ندارد یا حذف شده است');
+      const removed = await repo.remove(type, req.params.id);
+      await ctx.releaseAssets(ENTITIES[type].images.map((image) => oldRow[image.pid]).filter(Boolean));
+      res.json({ ok: true, removed });
+    }));
+  }
+
+  // ------------------------------------------------------------ admin: inbox
+  const canMessages = requirePermission('messages');
+  const canNewsletter = requirePermission('newsletter');
+
+  router.get('/admin/messages', canMessages, h(async (req, res) => {
+    res.json(await repo.listMessages());
+  }));
+
+  router.delete('/admin/messages', canMessages, h(async (req, res) => {
+    res.json({ ok: true, deleted: await repo.clearMessages() });
+  }));
+
+  router.patch('/admin/messages/:id', canMessages, h(async (req, res) => {
+    const ok = await repo.markMessageRead(req.params.id, Boolean(req.body?.is_read));
+    if (!ok) throw notFound();
+    res.json({ ok: true });
+  }));
+
+  router.delete('/admin/messages/:id', canMessages, h(async (req, res) => {
+    if (!(await repo.deleteMessage(req.params.id))) throw notFound();
+    res.json({ ok: true });
+  }));
+
+  router.get('/admin/subscribers', canNewsletter, h(async (req, res) => {
+    res.json(await repo.listSubscribers());
+  }));
+
+  // ----------------------------------------------------------- admin: settings
+  const canSite = requirePermission('site');
+
+  router.get('/admin/site', canSite, h(async (req, res) => {
+    res.json((await repo.getSite()) || EMPTY_SITE_CLIENT);
+  }));
+
+  router.put('/admin/site', canSite, h(async (req, res) => {
+    const parsed = siteSchema.safeParse(req.body);
+    if (!parsed.success) throw validationError(parsed.error);
+    res.json(await repo.saveSite(parsed.data));
+  }));
+
+  router.post(
+    '/admin/site/reset',
+    canSite,
+    h(async (req, res) => {
+      await repo.resetSite();
+      await repo.saveSite(SITE_SEED);
+      res.json(await repo.getSite());
+    })
+  );
+
+  // -------------------------------------------------------------- admin: stats
+  router.get('/admin/stats', requireAdmin, h(async (req, res) => {
+    const [comics, articles, movies, characters, team, unread, subscribers, messages] =
+      await Promise.all([
+        repo.count('comic'),
+        repo.count('article'),
+        repo.count('movie'),
+        repo.count('character'),
+        repo.count('team'),
+        repo.countUnreadMessages(),
+        repo.countSubscribers(),
+        repo.listMessages(1)
+      ]);
+    res.json({
+      comics,
+      articles,
+      movies,
+      characters,
+      team,
+      unread,
+      subscribers,
+      lastMessageAt: messages[0]?.created_at || null
+    });
+  }));
+
+  // ------------------------------------------------------------ admin: uploads
+  router.post('/admin/upload-sign', canContent, h(async (req, res) => {
+    if (!isCloudinaryConfigured(env.cloudinary)) {
+      throw new ApiError(503, 'cloudinary_not_configured', 'Cloudinary در سرور پیکربندی نشده است');
+    }
+    const key = String(req.body?.key || 'misc').replace(/[^a-z0-9_-]/gi, '').slice(0, 40) || 'misc';
+    res.json({ upload_endpoint: endpoint(env.cloudinary), ...buildUploadSignature(env.cloudinary, { key }) });
+  }));
+
+  // ------------------------------------------------------- admin: backup pages
+  const canBackup = requirePermission('backup');
+
+  router.get('/admin/export', canBackup, h(async (req, res) => {
+    const [comics, articles, movies, characters, team, messages, site] = await Promise.all([
+      repo.list('comic'),
+      repo.list('article'),
+      repo.list('movie'),
+      repo.list('character'),
+      repo.list('team'),
+      repo.listMessages(5000),
+      repo.getSite()
+    ]);
+    res.set('Content-Disposition', 'attachment; filename="deadverse-backup.json"');
+    res.json({
+      version: 2,
+      exportedAt: new Date().toISOString(),
+      data: { comics, articles, movies, characters, team, messages, site }
+    });
+  }));
+
+  router.post('/admin/import', canBackup, h(async (req, res) => {
+    const payload = req.body?.data && typeof req.body.data === 'object' ? req.body.data : req.body;
+    const hasCollections = Object.keys(COLLECTIONS).some((key) => Array.isArray(payload?.[key]));
+    if (!payload || typeof payload !== 'object' || !hasCollections) {
+      throw badRequest('فایل پشتیبان معتبر نیست — هیچ لیستی در آن پیدا نشد');
+    }
+
+    const warnings = [];
+    const imported = { comics: 0, articles: 0, movies: 0, characters: 0, team: 0, messages: 0 };
+
+    await ctx.withTransaction(async (txRepo) => {
+      for (const type of Object.values(COLLECTIONS)) await txRepo.clear(type);
+      await txRepo.clearMessages();
+
+      for (const [collection, type] of Object.entries(COLLECTIONS)) {
+        for (const [index, raw] of (Array.isArray(payload[collection]) ? payload[collection] : []).entries()) {
+          const candidate = { ...raw, sort_order: index };
+          for (const image of ENTITIES[type].images) {
+            const value = candidate[image.input];
+            if (value && !isStorableImage(value)) {
+              warnings.push(`${collection}[${index}]: تصویر «${image.input}» ذخیره نشد — فقط URL HTTPS مجاز است`);
+            }
+            candidate[image.input] = isStorableImage(value) ? value : '';
+            candidate[image.pidInput] = '';
+          }
+          await txRepo.create(type, parseEntityInput(type, candidate));
+          imported[collection] += 1;
+        }
+      }
+
+      for (const message of Array.isArray(payload.messages) ? payload.messages : []) {
+        const parsed = contactSchema.safeParse({
+          name: message?.name,
+          email: message?.email,
+          subject: message?.subject,
+          message: message?.message
+        });
+        if (!parsed.success) continue;
+        await txRepo.insertMessage(parsed.data);
+        imported.messages += 1;
+      }
+
+      if (payload.site) {
+        const parsed = siteSchema.safeParse({ ...EMPTY_SITE_CLIENT, ...payload.site });
+        if (parsed.success) await txRepo.saveSite(parsed.data);
+        else warnings.push('site: تنظیمات نامعتبر بود و مقدار پیش‌فرض ماند');
+      }
+    });
+
+    res.json({ ok: true, imported, warnings });
+  }));
+
+  router.post('/admin/reset', requireAdmin, h(async (req, res) => {
+    await ctx.withTransaction(async (txRepo) => {
+      for (const type of Object.keys(SEEDS)) {
+        await txRepo.clear(type);
+        for (const input of seedInputs(type)) {
+          await txRepo.create(type, parseEntityInput(type, input));
+        }
+      }
+      await txRepo.clearMessages();
+      await txRepo.resetSite();
+      await txRepo.saveSite(SITE_SEED);
+    });
+    res.json({ ok: true, message: 'همه داده‌ها به حالت پیش‌فرض بازنشانی شد' });
+  }));
+
+  return router;
+}
+
+export { COLLECTIONS };
