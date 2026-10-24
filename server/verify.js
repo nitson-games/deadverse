@@ -318,8 +318,15 @@ async function main() {
       assert.equal(saved.status, 200);
       assert.equal(saved.body.heroSub_fa, probe.heroSub_fa);
       assert.equal(saved.body.socialX, 'https://x.com/deadverse');
-      const publicSite = await call('/bootstrap');
-      assert.equal(publicSite.body.site.socialX, 'https://x.com/deadverse');
+      // /api/bootstrap is cached for 20 seconds on purpose, so the public page is
+      // allowed to show the previous copy briefly — but not longer than that.
+      let publicSite = null;
+      for (let waited = 0; waited < 45_000; waited += 3_000) {
+        publicSite = await call('/bootstrap');
+        if (publicSite.body.site.socialX === 'https://x.com/deadverse') break;
+        await new Promise((resolve) => setTimeout(resolve, 3_000));
+      }
+      assert.equal(publicSite.body.site.socialX, 'https://x.com/deadverse', 'آپدیت سایت در نسخه‌ی کش‌شده public دیده نشد');
       const restored = await call('/admin/site', { method: 'PUT', token, body: before.body });
       assert.equal(restored.body.heroSub_fa, before.body.heroSub_fa);
       assert.equal(restored.body.socialX, before.body.socialX);
