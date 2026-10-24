@@ -101,12 +101,6 @@
       transform: translateY(-2px);
       box-shadow: 0 8px 24px rgba(230,57,70,0.4);
     }
-    .login-hint {
-      text-align: center; font-size: 0.75rem; color: var(--text-dim);
-      margin-top: 18px; padding: 10px;
-      background: rgba(58,134,255,0.08);
-      border-radius: 8px; border: 1px solid rgba(58,134,255,0.15);
-    }
     .login-error {
       color: #ff6b7a; font-size: 0.8rem; text-align: center;
       margin-top: 12px; display: none;
@@ -606,12 +600,11 @@
       <div class="login-logo">DEAD<span>VERSE</span></div>
       <div class="login-sub">پنل مدیریت • Admin Panel</div>
       <label>نام کاربری / Username</label>
-      <input type="text" id="loginUser" placeholder="admin" autocomplete="username" />
+      <input type="text" id="loginUser" autocomplete="username" />
       <label>رمز عبور / Password</label>
       <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password" />
       <button class="login-btn" id="loginBtn">ورود به پنل</button>
       <div class="login-error" id="loginError">نام کاربری یا رمز عبور اشتباه است.</div>
-      <div class="login-hint" id="loginHint">رمز عبور را از هنگام راه‌اندازی سرور (متغیر <strong>ADMIN_PASSWORD</strong>) وارد کنید.</div>
     </div>
   </div>
 

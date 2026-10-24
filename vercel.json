@@ -8,10 +8,21 @@
       "maxDuration": 15
     }
   },
+  "redirects": [
+    {
+      "source": "/adminpanel.html",
+      "destination": "/admin",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",
       "destination": "/api/index"
+    },
+    {
+      "source": "/admin",
+      "destination": "/adminpanel.html"
     }
   ]
 }
