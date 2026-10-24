@@ -9,7 +9,7 @@ import { boot } from './helpers.js';
 function fakeSiteDir() {
   const dir = mkdtempSync(join(tmpdir(), 'deadverse-pages-'));
   writeFileSync(join(dir, 'index.html'), '<html><body>site</body></html>');
-  writeFileSync(join(dir, 'adminpanel.html'), '<html><body>panel with loginScreen</body></html>');
+  writeFileSync(join(dir, 'admin.html'), '<html><body>panel with loginScreen</body></html>');
   writeFileSync(join(dir, 'config.js'), 'window.DEADVERSE = {};');
   writeFileSync(join(dir, '.env'), 'ADMIN_PASSWORD=should-never-travel-over-http');
   writeFileSync(join(dir, 'package.json'), '{"secret":"nope"}');
@@ -30,6 +30,9 @@ describe('local page serving', () => {
       const panel = await request(app).get('/admin');
       assert.equal(panel.status, 200);
       assert.ok(panel.text.includes('loginScreen') || panel.text.includes('panel'));
+
+      const direct = await request(app).get('/admin.html');
+      assert.equal(direct.status, 200, 'the file is reachable under its own name too, as on Vercel');
 
       const config = await request(app).get('/config.js');
       assert.equal(config.status, 200);

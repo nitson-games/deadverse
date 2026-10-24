@@ -9,7 +9,8 @@ import { join } from 'node:path';
 const PAGES = new Map([
   ['/', 'index.html'],
   ['/index.html', 'index.html'],
-  ['/admin', 'adminpanel.html'],
+  ['/admin', 'admin.html'],
+  ['/admin.html', 'admin.html'],
   ['/config.js', 'config.js'],
   ['/favicon.svg', 'favicon.svg'],
   ['/og-cover.jpg', 'og-cover.jpg'],

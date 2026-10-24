@@ -9,7 +9,7 @@
  * Temporary override while testing: append ?api=https://your-api.vercel.app/api to the URL.
  */
 (function () {
-  var API_BASE = 'https://deadverse-eight.vercel.app/api';
+  var API_BASE = 'https://deadverse.vercel.app/api';
 
   function resolve() {
     var query = new URLSearchParams(window.location.search).get('api');

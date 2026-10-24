@@ -102,14 +102,14 @@ npm run verify     # ۳۵ بررسی کامل روی دیتابیس واقعی (
 
 `config.js` روی این آدرس‌ها خودکار API لوکال را انتخاب می‌کند. فایلی را با `file://` یا Live Server (پورت ۵۵۰۰) باز نکن: آن حالت همان صفحه را به API وصل می‌کند ولی آدرس `/admin` را ندارد و گیج‌کننده می‌شود.
 
-سرور لوکال عمداً **فقط چند فایل نام‌برده** را سرو می‌کند (`server/pages.js`: `index.html` در `/`، `adminpanel.html` در `/admin`، `config.js`، `favicon.svg`، `og-cover.jpg`). هیچ پوشه‌ای لیست نمی‌شود و `express.static` استفاده نشده، پس `/.env`، `/server/…` و `/node_modules/…` همان‌جا ۴۰۴ می‌دهند — این را `npm run verify` هم چک می‌کند. نسخه‌ی دیپلوی‌شده همین مسیرها را با rewrite در `vercel.json` دارد، پس لوکال و زنده یک رفتار دارند.
+سرور لوکال عمداً **فقط چند فایل نام‌برده** را سرو می‌کند (`server/pages.js`: `index.html` در `/`، `admin.html` در `/admin`، `config.js`، `favicon.svg`، `og-cover.jpg`). هیچ پوشه‌ای لیست نمی‌شود و `express.static` استفاده نشده، پس `/.env`، `/server/…` و `/node_modules/…` همان‌جا ۴۰۴ می‌دهند — این را `npm run verify` هم چک می‌کند. نسخه‌ی دیپلوی‌شده همین مسیرها را با rewrite در `vercel.json` دارد، پس لوکال و زنده یک رفتار دارند.
 
 ## ۴. دیپلوی روی Vercel
 
-پروژه‌ی Vercel به ریپوی گیت‌هاب `nitson-games/deadverse` متصل است: **هر `git push` روی `main` یک build جدید می‌سازد و جای نسخه‌ی قبلی را می‌گیرد** — کاری روی داشبورد نداری. آدرس production: `https://deadverse-eight.vercel.app` و پنل: `https://deadverse-eight.vercel.app/admin`. بعد از پوش چند لحظه صبر کن و بعد تأیید کن:
+پروژه‌ی Vercel به ریپوی گیت‌هاب `nitson-games/deadverse` متصل است: **هر `git push` روی `main` یک build جدید می‌سازد و جای نسخه‌ی قبلی را می‌گیرد** — کاری روی داشبورد نداری. آدرس production: `https://deadverse.vercel.app` و پنل: `https://deadverse.vercel.app/admin`. بعد از پوش چند لحظه صبر کن و بعد تأیید کن:
 
 ```bash
-curl -s https://deadverse-eight.vercel.app/api/health
+curl -s https://deadverse.vercel.app/api/health
 ```
 
 اگر نسخه‌ی تازه بالا نیامد، در داشبورد → Projects → Deployments لاگ build را بخوان (معمولاً خطای `runtime` یا یک متغیر Environment Variables جاافتاده).
@@ -118,8 +118,8 @@ curl -s https://deadverse-eight.vercel.app/api/health
 
 نکته‌هایی که موقع دیپلوی این پروژه به آن بر خوردیم:
 - در `vercel.json` **نویس `"runtime": "nodejs20.x"` ممنوع**؛ build با خطای `Function Runtimes must have a valid version` می‌میرد. نسخه‌ی Node را Vercel انتخاب می‌کند (و `engines.node` در `package.json` راهنمای آن است). `memory` هم با صورت‌حساب Fluid Compute نادیده گرفته می‌شود.
-- `.vercelignore` جلوی آپلود `.env*`، `tests/` و پوشه‌های ابزار را می‌گیرد. بعد از دیپلوی چک کن: `curl -I https://deadverse-eight.vercel.app/.env` باید **۴۰۴** بدهد.
-- «Deployment Protection» روی پروژه روشن است ولی فقط **preview URL**ها را قفل می‌کند؛ آدرس production برای بازدیدکننده‌ی ناشناس باز است (با `curl -i https://deadverse-eight.vercel.app/api/health` تأییدشده).
+- `.vercelignore` جلوی آپلود `.env*`، `tests/` و پوشه‌های ابزار را می‌گیرد. بعد از دیپلوی چک کن: `curl -I https://deadverse.vercel.app/.env` باید **۴۰۴** بدهد.
+- «Deployment Protection» روی پروژه روشن است ولی فقط **preview URL**ها را قفل می‌کند؛ آدرس production برای بازدیدکننده‌ی ناشناس باز است (با `curl -i https://deadverse.vercel.app/api/health` تأییدشده).
 
 متغیرهای لازم روی Vercel (محیط Production):
 
@@ -136,7 +136,7 @@ curl -s https://deadverse-eight.vercel.app/api/health
 بعد از دیپلوی، از همان ماشین تست راه دور:
 
 ```bash
-npm run verify -- https://deadverse-eight.vercel.app
+npm run verify -- https://deadverse.vercel.app
 ```
 
 هر رکوردی که `verify` می‌سازد (کمیک، مقاله، پیام، مشترک خبرنامه، تصویر) در پایان همان اجرا از طریق endpoint های واقعیِ ادمین حذف می‌شود، پس دیتابیس پس از تست تمیز می‌ماند.
@@ -146,7 +146,7 @@ npm run verify -- https://deadverse-eight.vercel.app
 سایت و API الان **هر دو روی Vercel** هستند، پس `config.js` خودکار `/api` (هم‌ریشه) را انتخاب می‌کند و چیزی لازم نیست. اگر نسخه‌ی GitHub Pages را هم می‌خواهی، `API_BASE` باید آدرس کامل ورسِل باشد:
 
 ```js
-var API_BASE = 'https://deadverse-eight.vercel.app/api';
+var API_BASE = 'https://deadverse.vercel.app/api';
 ```
 
 قاعده انتخاب آدرس در `resolve()` این است (نیازی به تغییر ندارد، فقط بدانی):
@@ -156,7 +156,7 @@ var API_BASE = 'https://deadverse-eight.vercel.app/api';
 - دامنه روی `*.vercel.app` یا `*.netlify.app` → `/api` (هم‌ریشه).
 - بقیه (GitHub Pages) → همان `API_BASE`.
 
-پنل ادمین: `https://deadverse-eight.vercel.app/admin` — آدرس تمیز، بدون `.html` (rewrite در `vercel.json`). `/adminpanel.html` هم کار می‌کند ولی به `/admin` ریدایرکت می‌شود. صفحه هیچ لینکی به پنل ندارد و با `noindex` از ایندکس گوگل بیرون می‌ماند؛ برای ورود فقط خود `/admin` را تایپ کن.
+پنل ادمین: `https://deadverse.vercel.app/admin` — آدرس تمیز، بدون `.html` (rewrite در `vercel.json` به فایل `admin.html`). آدرس قدیمی `/adminpanel.html` دیگر فایلی نیست و فقط به `/admin` ریدایرکت می‌شود تا بوکمارک‌های قبلی نشکنند. صفحه هیچ لینکی به پنل ندارد و با `noindex` از ایندکس گوگل بیرون می‌ماند؛ برای ورود فقط خود `/admin` را تایپ کن.
 
 ## ۶. لایه‌ی اتصال و امنیت
 
@@ -168,7 +168,7 @@ var API_BASE = 'https://deadverse-eight.vercel.app/api';
 
 ## ۷. استفاده‌ی روزانه
 
-- **ورود**: آدرس پنل `https://deadverse-eight.vercel.app/admin` است (روی سایت هیچ لینکی به آن نیست، صفحه هم `noindex` است). صفحه‌ی ورود هیچ اشاره‌ای به رمز یا نام کاربری پیش‌فرض نمی‌دهد. رمز ثابت `admin/deadverse` دیگر وجود ندارد. JWT با `token_version` است؛ با تغییر رمز، همه‌ی سشن‌های قبلی باطل می‌شود. ورود پشت rate-limit است (چند تلاش غلط → ۴۲۹ موقت).
+- **ورود**: آدرس پنل `https://deadverse.vercel.app/admin` است (روی سایت هیچ لینکی به آن نیست، صفحه هم `noindex` است). صفحه‌ی ورود هیچ اشاره‌ای به رمز یا نام کاربری پیش‌فرض نمی‌دهد. رمز ثابت `admin/deadverse` دیگر وجود ندارد. JWT با `token_version` است؛ با تغییر رمز، همه‌ی سشن‌های قبلی باطل می‌شود. ورود پشت rate-limit است (چند تلاش غلط → ۴۲۹ موقت).
 - **رمز ادمین**: `ADMIN_USERNAME` / `ADMIN_PASSWORD` فقط در `npm run db:setup` (و فقط وقتی جدول خالی است) خوانده می‌شود و بعد از bcrypt در دیتابیس ذخیره می‌شود. این دو فقط در `.env` محلی لازم‌اند؛ روی Vercel جایی ندارند (سرور به آن‌ها نیازی ندارد). بعد از اولین ورود می‌توانی از بخش «رمز عبور» عوضش کنی.
 - **ادمین‌ها و دسترسی‌ها**: بخش «👤 ادمین‌ها» (فقط با دسترسی `admins`) حساب جدید می‌سازد: نام نمایشی، نام کاربری، رمز و تیک‌های دسترسی. شش دسترسی این‌ها هستند:
   `content` (کمیک/مقاله/فیلم/شخصیت/تیم + آپلود تصویر)، `messages`، `newsletter`، `site`، `backup` (Export/Import/Reset)، `admins`.
@@ -181,7 +181,7 @@ var API_BASE = 'https://deadverse-eight.vercel.app/api';
   - پاسخ `/api/bootstrap` عمداً ۲۰ ثانیه کش می‌شود (`Cache-Control: public, max-age=20`)؛ بعد از ذخیره در پنل، سایت حداکثر تا ۲۰ ثانیه نسخه‌ی قبلی را نشان می‌دهد. برای دیدن فوری، صفحه را با `Ctrl+Shift+R` باز کن.
 - **تصویر**: در پنل فایل را انتخاب می‌کنی؛ مرورگر آن را تا ۱۶۰۰ پیکسل کوچک و فشرده می‌کند و بایت‌ها در دیتابیس ذخیره می‌شوند. در رکورد فقط مسیر `/api/media/<id>` ذخیره می‌شود. اگر ویرایش کنی و دوباره آپلود نکنی، همان تصویر قبلی حفظ می‌شود؛ وقتی تصویر عوض یا آیتم حذف می‌شود، بایت‌های قبلی از جدول `media` پاک می‌روند تا فضا آزاد بماند.
 - **تنظیمات سایت**: متن هیرو، درباره و دکمه‌ها در دو زبان؛ دقیقاً همان‌جا که در سایت نمایش داده می‌شود. گروه «لینک‌های شبکه‌های اجتماعی» هم همین‌جا است: ایکس، اینستاگرام، یوتیوب و دیسکورد. هر کدام که خالی بماند، آیکونش از فوتر حذف می‌شود (آیکون مرده روی سایت نمی‌ماند) و آدرس باید با `https://` شروع شود.
-- **اشتراک‌گذاری در شبکه‌ها**: `favicon.svg` و `og-cover.jpg` در ریشه‌ی ریپو هستند و تگ‌های `og:`/`twitter:` در `index.html` آن‌ها را با آدرس کامل `https://deadverse-eight.vercel.app/...` نشان می‌دهند. اگر یک‌روز نام دامنه یا پروژه‌ی Vercel را عوض کردی، همین آدرس‌ها را در همان بلوک متا (و `API_BASE` در `config.js`) به‌روز کن.
+- **اشتراک‌گذاری در شبکه‌ها**: `favicon.svg` و `og-cover.jpg` در ریشه‌ی ریپو هستند و تگ‌های `og:`/`twitter:` در `index.html` آن‌ها را با آدرس کامل `https://deadverse.vercel.app/...` نشان می‌دهند. اگر یک‌روز نام دامنه یا پروژه‌ی Vercel را عوض کردی، همین آدرس‌ها را در همان بلوک متا (و `API_BASE` در `config.js`) به‌روز کن.
 - **پیام‌ها / خبرنامه**: اینباکس با خوانده‌نشده، خروجی CSV مشترکین. هر مشترک دکمه‌ی حذف دارد (`DELETE /api/admin/subscribers/:id`)؛ تا ایمیل‌های تستی در لیست نمانند.
 - **پشتیبان**: Export یک JSON کامل (محتوا + پیام‌ها + تنظیمات) و Import همان فایل. Import کل دیتابیس را بازنشانی می‌کند — قبلش فایل را نگه دار. بایت‌های تصویر در این JSON نیستند (فقط مسیرشان ذخیره می‌شود و تا همان‌جا که دیتابیس پاک نشده کار می‌کند)؛ برای پشتیبان واقعی از کنسول Neon یک Snapshot بگیر.
 
@@ -202,19 +202,19 @@ var API_BASE = 'https://deadverse-eight.vercel.app/api';
 | در پنل پیام «دسترسی «x» برای حساب شما فعال نیست» | حساب تو آن دسترسی را ندارد؛ با یک ادمین که دسترسی `admins` دارد وارد شو و از بخش ادمین‌ها تیکش را فعال کن (بعد از تغییر دسترسی باید دوباره وارد شوی). |
 | بخش «ادمین‌ها» در منو نیست | حساب جاری دسترسی `admins` ندارد. اگر همه‌ی حساب‌ها آن را ندارند، `npm run db:setup` دوباره اجرا نمی‌شود؛ از طریق SQL: `UPDATE admins SET permissions = '{content,messages,newsletter,site,backup,admins}' WHERE username = '...'`. |
 | «ستون permissions در admins نیست» در `npm run verify` | `npm run db:setup` را بعد از کشیدن آخرین نسخه اجرا کن (ALTER روی جدول قدیمی لازم است). |
-| چیزی در پنل ذخیره می‌کنی و سایت عوض نمی‌شود | یا **پروژه‌ی دیگری** را باز کرده‌ای (پنل قدیمی فقط در localStorage مرورگر خودت می‌نوشت و به سرور وصل نبود — نشانه‌اش: روی صفحه‌ی لاگین نام کاربری و رمز با «admin / deadverse» نوشته شده) یا بنر «اتصال برقرار نیست» بالای سایت روشن است. نسخه‌ی درست: سایت روی `https://deadverse-eight.vercel.app` و پنل روی `/admin`. پنل درست روی صفحه‌ی لاگین هیچ نام کاربری یا رمزی نشان نمی‌دهد و نوار کناری آدرس API و محیط (لوکال/زنده) را نوشته است. |
+| چیزی در پنل ذخیره می‌کنی و سایت عوض نمی‌شود | یا بنر «اتصال برقرار نیست» بالای سایت روشن است (API در دسترس نیست)، یا آدرس بار مرورگر را چک کن: یک نمونه‌ی قدیمیِ فقط‌فرانت (بدون `/api`، با `login-hint` روی صفحه لاگین) که داده را در `localStorage` مرورگر می‌نوشت. آن پروژه پاک شده و `deadverse.vercel.app` حالا خودِ همین پروژه است؛ نشانه‌ی نسخه‌ی درست: پنل روی `/admin` باز می‌شود و نوار کناری آدرس API و محیط (لوکال/زنده) را می‌نویسد. |
 | پیام «زیادی تلاش کردید، کمی بعدتر دوباره امتحان کنید» (۴۲۹) | محافظ ورود است: هر IP حداکثر ۸ تلاش ورود در ۵ دقیقه. `npm run verify` هم چند ورود می‌زند، پس پشت سر هم اجرا نکن — سرور در پاسخ `Retry-After` ثانیه‌های باقی‌مانده را می‌گوید. |
 
 ## ۹. ساختار فایل‌ها
 
 ```
 index.html            سایت عمومی (API-driven)
-adminpanel.html       پنل ادمین (API-driven) — از طریق /admin باز می‌شود
+admin.html            پنل ادمین (API-driven) — از طریق /admin باز می‌شود
 favicon.svg           آیکون تب مرورگر
 og-cover.jpg          تصویر اشتراک‌گذاری در شبکه‌های اجتماعی (1200×686)
 config.js             client مشترک: آدرس API، fetch، توکن، خطاهای فیلدی
 api/index.js          ورودی serverless Vercel (Express app)
-vercel.json           rewrite /api/* و /admin + ریدایرکت /adminpanel.html (بدون `runtime`؛ نسخه Node را Vercel انتخاب می‌کند)
+vercel.json           rewrite /api/* و /admin → admin.html + ریدایرکت /adminpanel.html (بدون `runtime`؛ نسخه Node را Vercel انتخاب می‌کند)
 .vercelignore         .env*، tests/ و پوشه‌های ابزار آپلود نمی‌شوند
 server/
   app.js              Express + CORS + هدرهای امنیتی + error handler

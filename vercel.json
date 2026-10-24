@@ -22,7 +22,7 @@
     },
     {
       "source": "/admin",
-      "destination": "/adminpanel.html"
+      "destination": "/admin.html"
     }
   ]
 }
