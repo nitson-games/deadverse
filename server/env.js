@@ -9,6 +9,15 @@ export function loadEnv() {
     databaseUrl: process.env.DATABASE_URL || '',
     jwtSecret: process.env.JWT_SECRET || '',
     tokenTtl: process.env.JWT_EXPIRES_IN || '12h',
+    /** Readers stay signed in for a month — they only ever unlock articles, so a
+        long life costs little and stops the login wall nagging on every visit. */
+    memberTokenTtl: process.env.MEMBER_JWT_EXPIRES_IN || '30d',
+    /** Optional Cloudflare Turnstile. Empty means the built-in challenge runs. */
+    turnstile: {
+      siteKey: process.env.TURNSTILE_SITEKEY || '',
+      secret: process.env.TURNSTILE_SECRET || ''
+    },
+    contactCooldownMinutes: Number(process.env.CONTACT_COOLDOWN_MINUTES || 30),
     allowedOrigins: (process.env.ALLOWED_ORIGINS || '')
       .split(',')
       .map((s) => s.trim())

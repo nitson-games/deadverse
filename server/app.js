@@ -70,11 +70,20 @@ export function createApp(overrides = {}) {
       }),
     limiter: overrides.limiter || {
       login: rateLimit({ name: 'login', limit: 8, windowMs: 5 * 60_000, message: 'زیادی تلاش کردید، کمی بعدتر دوباره امتحان کنید' }),
-      contact: rateLimit({ name: 'contact', limit: 6, windowMs: 10 * 60_000, message: 'خیلی زود پیام می‌فرستید' }),
+      memberLogin: rateLimit({ name: 'member-login', limit: 10, windowMs: 5 * 60_000, message: 'زیادی تلاش کردید، کمی بعدتر دوباره امتحان کنید' }),
+      signup: rateLimit({ name: 'signup', limit: 4, windowMs: 60 * 60_000, message: 'زیادی حساب ساختید، یک ساعت دیگر امتحان کنید' }),
+      challenge: rateLimit({ name: 'challenge', limit: 40, windowMs: 10 * 60_000, message: 'زیادی سوال می‌خواهید، کمی بعدتر' }),
+      contact: rateLimit({ name: 'contact', limit: 3, windowMs: 10 * 60_000, message: 'خیلی زود پیام می‌فرستید' }),
       newsletter: rateLimit({ name: 'newsletter', limit: 8, windowMs: 10 * 60_000, message: 'خیلی زود عضو می‌شوید' }),
       upload: rateLimit({ name: 'upload', limit: 40, windowMs: 60_000, message: 'خیلی سریع تصویر آپلود می‌کنید، کمی صبر کنید' })
     },
-    async getAdminFromRequest(req) {
+    /**
+     * `kind` is checked because admin and member tokens are signed with the same
+     * secret: without the claim test a reader could paste their token into an
+     * admin call and be treated as staff. Tokens minted before the claim existed
+     * are rejected too, which only means the panel asks for a fresh login.
+     */
+    readToken(req, kind) {
       const token = bearerFrom(req);
       if (!token || !env.jwtSecret) return null;
       let payload;
@@ -83,10 +92,24 @@ export function createApp(overrides = {}) {
       } catch {
         throw unauthorized('نشست شما منقضی شده است، دوباره وارد شوید');
       }
+      if (payload.kind !== kind) return null;
+      return payload;
+    },
+    async getAdminFromRequest(req) {
+      const payload = ctx.readToken(req, 'admin');
+      if (!payload) return null;
       const admin = await repo.findAdminById(payload.sub);
       if (!admin || admin.token_version !== payload.tv) return null;
       if (admin.is_active === false) return null;
       return admin;
+    },
+    async getMemberFromRequest(req) {
+      const payload = ctx.readToken(req, 'member');
+      if (!payload) return null;
+      const member = await repo.findMemberById(payload.sub);
+      if (!member || member.token_version !== payload.tv) return null;
+      if (member.is_active === false) return null;
+      return member;
     },
     releaseMedia: overrides.releaseMedia || (async (ids) => {
       const owned = ownedMediaIds(ids);

@@ -15,10 +15,19 @@ export const PAGES = new Map([
   ['/index.html', 'index.html'],
   ['/admin', 'admin.html'],
   ['/admin.html', 'admin.html'],
+  ['/item.html', 'item.html'],
   ['/config.js', 'config.js'],
   ['/favicon.svg', 'favicon.svg'],
   ['/og-cover.jpg', 'og-cover.jpg'],
 ]);
+
+/**
+ * One page renders every item address, because the record it shows comes from
+ * the URL, not the file. These prefixes mirror the rewrites in `vercel.json` —
+ * add one here and there, never in only one of the two, or a link works on the
+ * dev server and 404s in production.
+ */
+export const ITEM_PREFIXES = ['/comics/', '/articles/', '/movies/', '/characters/'];
 
 export const PANEL_PATH = '/admin';
 
@@ -26,7 +35,9 @@ export function servePages({ rootDir }) {
   return (req, res, next) => {
     if (req.method !== 'GET' && req.method !== 'HEAD') return next();
     if (req.path === '/adminpanel.html') return res.redirect(307, PANEL_PATH);
-    const file = PAGES.get(req.path);
+    const file =
+      PAGES.get(req.path) ||
+      (ITEM_PREFIXES.some((prefix) => req.path.startsWith(prefix)) ? 'item.html' : null);
     if (!file) return next();
     // Development copies must never come out of a browser cache, or a saved
     // change looks like it did nothing.

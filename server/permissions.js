@@ -4,17 +4,21 @@
  */
 export const PERMISSIONS = [
   'content',
+  'team',
   'messages',
   'newsletter',
+  'members',
   'site',
   'backup',
   'admins'
 ];
 
 export const PERMISSION_LABELS = {
-  content: 'ویرایش محتوا (کمیک، مقاله، فیلم، شخصیت، تیم)',
+  content: 'محتوا (کمیک، مقاله، فیلم، شخصیت)',
+  team: 'بخش تیم سایت',
   messages: 'پیام‌های تماس',
   newsletter: 'مشترک‌های خبرنامه',
+  members: 'عضوهای سایت (فهرست، غیرفعال‌کردن، حذف)',
   site: 'تنظیمات سایت',
   backup: 'پشتیبان‌گیری و بازنشانی داده‌ها',
   admins: 'مدیریت ادمین‌ها و دسترسی‌ها'

@@ -284,6 +284,7 @@
     .stat-card.blue::before { background: var(--blue); }
     .stat-card.green::before { background: var(--green); }
     .stat-card.purple::before { background: var(--purple); }
+    .stat-card.amber::before { background: #f5c518; }
     .stat-icon { font-size: 1.4rem; margin-bottom: 10px; }
     .stat-value { font-size: 1.8rem; font-weight: 900; line-height: 1; margin-bottom: 4px; }
     .stat-label { font-size: 0.78rem; color: var(--text-dim); }
@@ -373,6 +374,8 @@
       border-color: var(--red); color: var(--red);
       background: rgba(230,57,70,0.08);
     }
+    a.icon-btn { text-decoration: none; }
+    .row-link { font-size: 0.7rem; color: var(--text-dim); font-family: ui-monospace, monospace; }
 
     /* Form */
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
@@ -632,12 +635,13 @@
         <button class="sidebar-link" data-page="articles" data-permission="content"><span class="icon">📰</span> مقالات <span class="badge" id="badgeArticles">0</span></button>
         <button class="sidebar-link" data-page="movies" data-permission="content"><span class="icon">🎬</span> فیلم‌ها <span class="badge" id="badgeMovies">0</span></button>
         <button class="sidebar-link" data-page="characters" data-permission="content"><span class="icon">🦸</span> شخصیت‌ها <span class="badge" id="badgeCharacters">0</span></button>
-        <button class="sidebar-link" data-page="team" data-permission="content"><span class="icon">👥</span> تیم <span class="badge" id="badgeTeam">0</span></button>
+        <button class="sidebar-link" data-page="team" data-permission="team"><span class="icon">👥</span> تیم <span class="badge" id="badgeTeam">0</span></button>
 
         <div class="nav-section-label">تنظیمات</div>
         <button class="sidebar-link" data-page="site" data-permission="site"><span class="icon">⚙️</span> تنظیمات سایت</button>
         <button class="sidebar-link" data-page="messages" data-permission="messages"><span class="icon">✉️</span> پیام‌ها <span class="badge" id="badgeMessages">0</span></button>
         <button class="sidebar-link" data-page="subscribers" data-permission="newsletter"><span class="icon">📧</span> خبرنامه <span class="badge" id="badgeSubscribers">0</span></button>
+        <button class="sidebar-link" data-page="members" data-permission="members"><span class="icon">🧑‍🚀</span> عضوها <span class="badge" id="badgeMembers">0</span></button>
         <button class="sidebar-link" data-page="staff" data-permission="admins"><span class="icon">👤</span> ادمین‌ها</button>
         <button class="sidebar-link" data-page="backup" data-permission="backup"><span class="icon">💾</span> پشتیبان‌گیری</button>
         <button class="sidebar-link" data-page="security"><span class="icon">🔐</span> رمز عبور</button>
@@ -694,6 +698,11 @@
               <div class="stat-icon">🦸</div>
               <div class="stat-value" id="statCharacters">0</div>
               <div class="stat-label">شخصیت‌ها</div>
+            </div>
+            <div class="stat-card amber">
+              <div class="stat-icon">🧑‍🚀</div>
+              <div class="stat-value" id="statMembers">0</div>
+              <div class="stat-label">عضوهای سایت</div>
             </div>
           </div>
           <div class="data-card">
@@ -838,7 +847,7 @@
         </div>
 
         <!-- TEAM -->
-        <div class="page" id="page-team" data-permission="content">
+        <div class="page" id="page-team" data-permission="team">
           <div class="page-header">
             <h1>مدیریت تیم</h1>
             <p>افزودن، ویرایش و حذف اعضای تیم همراه با تصویر پروفایل</p>
@@ -1005,6 +1014,87 @@
                 </thead>
                 <tbody id="tbodySubscribers"></tbody>
               </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- MEMBERS -->
+        <div class="page" id="page-members" data-permission="members">
+          <div class="page-header">
+            <h1>عضوهای سایت</h1>
+            <p>کسانی که برای خواندن مقالات حساب ساخته‌اند — غیرفعال‌کردن، تغییر رمز و حذف از همین‌جا</p>
+          </div>
+          <div class="data-card">
+            <div class="data-card-header">
+              <h3>عضوها <span class="count" id="countMembers">0</span></h3>
+              <div class="toolbar">
+                <div class="search-mini"><input type="text" id="searchMembers" placeholder="جستجوی نام کاربری یا ایمیل..." /></div>
+                <button class="btn btn-primary" onclick="openMemberForm()">+ افزودن عضو</button>
+              </div>
+            </div>
+            <div style="overflow-x:auto;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>نام کاربری</th>
+                    <th>نمایش</th>
+                    <th>ایمیل</th>
+                    <th>وضعیت</th>
+                    <th>عضویت</th>
+                    <th>آخرین بازدید</th>
+                    <th>عملیات</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyMembers"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="data-card" id="memberCreateCard" hidden style="margin-top:18px;">
+            <div class="data-card-header"><h3>ساخت حساب برای یک خواننده</h3></div>
+            <div style="padding:20px;">
+              <div class="form-grid">
+                <div class="form-field">
+                  <label>نام کاربری <span class="req">*</span></label>
+                  <input type="text" id="newMemberUsername" autocomplete="off" />
+                  <div class="field-hint">۳ تا ۳۲ نویسه: حرف کوچک، رقم، نقطه، خط تیره یا آندرلاین</div>
+                </div>
+                <div class="form-field">
+                  <label>رمز عبور <span class="req">*</span></label>
+                  <input type="password" id="newMemberPassword" autocomplete="new-password" />
+                  <div class="field-hint">حداقل ۸ کاراکتر — به خودتان نگویید، به خواننده بدهید</div>
+                </div>
+                <div class="form-field"><label>نام نمایشی</label><input type="text" id="newMemberDisplay" /></div>
+                <div class="form-field"><label>ایمیل</label><input type="text" id="newMemberEmail" autocomplete="off" /></div>
+              </div>
+              <div style="display:flex; gap:10px; margin-top:16px; flex-wrap:wrap;">
+                <button class="btn btn-primary" id="memberCreateBtn" onclick="createMember()">ذخیره</button>
+                <button class="btn" onclick="closeMemberForms()">انصراف</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="data-card" id="memberEditCard" hidden style="margin-top:18px;">
+            <div class="data-card-header"><h3>ویرایش عضو <span class="count" id="memberEditName"></span></h3></div>
+            <div style="padding:20px;">
+              <div class="form-grid">
+                <div class="form-field"><label>نام نمایشی</label><input type="text" id="memberEditDisplay" /></div>
+                <div class="form-field"><label>ایمیل</label><input type="text" id="memberEditEmail" autocomplete="off" /></div>
+                <div class="form-field">
+                  <label>وضعیت</label>
+                  <select id="memberEditActive"><option value="1">فعال</option><option value="0">غیرفعال</option></select>
+                  <div class="field-hint">غیرفعال‌کردن، همان لحظه از همه‌ی دستگاه‌ها خارجش می‌کند</div>
+                </div>
+                <div class="form-field">
+                  <label>رمز جدید</label>
+                  <input type="password" id="memberEditPassword" autocomplete="new-password" />
+                  <div class="field-hint">خالی بگذارید اگر نمی‌خواهید رمز را عوض کنید</div>
+                </div>
+              </div>
+              <div style="display:flex; gap:10px; margin-top:16px; flex-wrap:wrap;">
+                <button class="btn btn-primary" id="memberSaveBtn" onclick="saveMemberEdit()">ذخیره تغییرات</button>
+                <button class="btn" onclick="closeMemberForms()">بستن</button>
+              </div>
             </div>
           </div>
         </div>
@@ -1194,6 +1284,8 @@
       team: [],
       messages: [],
       subscribers: [],
+      members: [],
+      memberTotals: { total: 0, active: 0, recent: 0 },
       admins: [],
       permissionCatalogue: [],
       site: null,
@@ -1367,6 +1459,9 @@
       state.messages = [];
       state.subscribers = [];
       state.admins = [];
+      state.members = [];
+      state.memberTotals = { total: 0, active: 0, recent: 0 };
+      closeMemberForms();
       state.me = { username: '', displayName: '', permissions: [] };
       applyPermissions();
       showLogin();
@@ -1387,10 +1482,12 @@
           add('articles', '/admin/articles');
           add('movies', '/admin/movies');
           add('characters', '/admin/characters');
-          add('team', '/admin/team');
         }
+        // The team section has its own tick, so it is fetched on its own permission.
+        if (can('team')) add('team', '/admin/team');
         if (can('messages')) add('messages', '/admin/messages');
         if (can('newsletter')) add('subscribers', '/admin/subscribers');
+        if (can('members')) add('members', '/admin/members');
         if (can('site')) add('site', '/admin/site');
         if (can('admins')) add('staff', '/admin/admins');
         add('stats', '/admin/stats');
@@ -1406,6 +1503,10 @@
         if (data.team) state.team = data.team;
         if (data.messages) state.messages = data.messages;
         if (data.subscribers) state.subscribers = data.subscribers;
+        if (data.members) {
+          state.members = data.members.items || [];
+          state.memberTotals = data.members.totals || state.memberTotals;
+        }
         if (data.site) state.site = data.site;
         if (data.staff) {
           state.admins = data.staff.items;
@@ -1436,7 +1537,8 @@
       dashboard: 'داشبورد', comics: 'مدیریت کمیک‌ها', articles: 'مدیریت مقالات',
       movies: 'مدیریت فیلم‌ها', characters: 'مدیریت شخصیت‌ها', team: 'مدیریت تیم',
       site: 'تنظیمات سایت', messages: 'پیام‌ها', subscribers: 'خبرنامه',
-      staff: 'ادمین‌ها و دسترسی‌ها', backup: 'پشتیبان‌گیری', security: 'رمز عبور'
+      staff: 'ادمین‌ها و دسترسی‌ها', backup: 'پشتیبان‌گیری', security: 'رمز عبور',
+      members: 'عضوهای سایت'
     };
 
     function switchPage(page) {
@@ -1457,6 +1559,7 @@
       if (page === 'backup') updateStorageInfo();
       if (page === 'messages') renderMessages();
       if (page === 'subscribers') renderSubscribers();
+      if (page === 'members') renderMembers();
     }
 
     // ============================================================
@@ -1470,6 +1573,7 @@
       renderTeam();
       renderMessages();
       renderSubscribers();
+      renderMembers();
       renderSiteSettings();
       renderStaff();
       updateCounts();
@@ -1484,6 +1588,17 @@
 
     function emptyRow(colspan, icon, label) {
       return `<tr><td colspan="${colspan}"><div class="empty-state"><div class="icon">${icon}</div><p>${esc(label)}</p></div></td></tr>`;
+    }
+
+    /** Every record has its own public page now; the panel links to it for a quick look. */
+    function openPageLink(type, item) {
+      const href = api.pageHref(type, item);
+      if (!href) return '';
+      return `<a class="icon-btn" href="${esc(href)}" target="_blank" rel="noopener" title="باز کردن صفحه‌ی سایت">↗</a>`;
+    }
+
+    function slugCell(item) {
+      return `<div class="row-link" dir="ltr" title="آدرس صفحه">${esc(item.slug || item.id)}</div>`;
     }
 
     function matches(item, needles, filter) {
@@ -1502,10 +1617,11 @@
       tbody.innerHTML = list.map(c => `
         <tr>
           <td>${imgCell(c.image, c.title_fa)}</td>
-          <td><div class="td-title">${esc(c.title_fa)}</div><div style="font-size:0.72rem;color:var(--text-dim);">${esc(c.title_en)}</div></td>
+          <td><div class="td-title">${esc(c.title_fa)}</div><div style="font-size:0.72rem;color:var(--text-dim);">${esc(c.title_en)}</div>${slugCell(c)}</td>
           <td><span class="tag ${c.publisher === 'Marvel' ? 'tag-marvel' : 'tag-dc'}">${esc(c.publisher)}</span></td>
           <td>${esc(c.year)}</td>
           <td><div class="actions-cell">
+            ${openPageLink('comic', c)}
             <button class="icon-btn" onclick="editItem('comic','${esc(c.id)}')" title="ویرایش">✎</button>
             <button class="icon-btn danger" onclick="deleteItem('comic','${esc(c.id)}')" title="حذف">🗑</button>
           </div></td>
@@ -1526,10 +1642,11 @@
         return `
         <tr>
           <td>${imgCell(a.coverImage, a.title_fa)}</td>
-          <td><div class="td-title">${esc(a.title_fa)}</div><div style="font-size:0.72rem;color:var(--text-dim);">${esc(a.title_en)}</div></td>
+          <td><div class="td-title">${esc(a.title_fa)}</div><div style="font-size:0.72rem;color:var(--text-dim);">${esc(a.title_en)}</div>${slugCell(a)}</td>
           <td><span class="tag tag-neutral">${esc(catLabels[a.cat] || a.cat)}</span></td>
           <td><span class="gallery-count">🖼 ${imgCount} / 3</span></td>
           <td><div class="actions-cell">
+            ${openPageLink('article', a)}
             <button class="icon-btn" onclick="editItem('article','${esc(a.id)}')" title="ویرایش">✎</button>
             <button class="icon-btn danger" onclick="deleteItem('article','${esc(a.id)}')" title="حذف">🗑</button>
           </div></td>
@@ -1547,11 +1664,12 @@
       tbody.innerHTML = list.map(m => `
         <tr>
           <td>${imgCell(m.image, m.name_fa)}</td>
-          <td><div class="td-title">${esc(m.name_fa)}</div><div style="font-size:0.72rem;color:var(--text-dim);">${esc(m.name_en)}</div></td>
+          <td><div class="td-title">${esc(m.name_fa)}</div><div style="font-size:0.72rem;color:var(--text-dim);">${esc(m.name_en)}</div>${slugCell(m)}</td>
           <td><span class="tag ${m.universe === 'Marvel' ? 'tag-marvel' : 'tag-dc'}">${esc(m.universe)}</span></td>
           <td>${esc(m.year)}</td>
-          <td><span style="color:#f5c518;font-weight:700;">★ ${esc(m.rating)}</span></td>
+          <td><span style="color:#f5c518;font-weight:700;">★ ${esc(m.rating)}</span>${m.watchUrl ? '<div class="row-link">▶ لینک مشاهده</div>' : ''}</td>
           <td><div class="actions-cell">
+            ${openPageLink('movie', m)}
             <button class="icon-btn" onclick="editItem('movie','${esc(m.id)}')" title="ویرایش">✎</button>
             <button class="icon-btn danger" onclick="deleteItem('movie','${esc(m.id)}')" title="حذف">🗑</button>
           </div></td>
@@ -1569,10 +1687,11 @@
       tbody.innerHTML = list.map(c => `
         <tr>
           <td>${imgCell(c.image, c.name_fa)}</td>
-          <td><div class="td-title">${esc(c.name_fa)}</div><div style="font-size:0.72rem;color:var(--text-dim);">${esc(c.name_en)}</div></td>
+          <td><div class="td-title">${esc(c.name_fa)}</div><div style="font-size:0.72rem;color:var(--text-dim);">${esc(c.name_en)}</div>${slugCell(c)}</td>
           <td><span class="tag ${c.universe === 'Marvel' ? 'tag-marvel' : 'tag-dc'}">${esc(c.universe)}</span></td>
           <td><span class="tag ${c.type === 'hero' ? 'tag-green' : 'tag-marvel'}">${c.type === 'hero' ? 'قهرمان' : 'شرور'}</span></td>
           <td><div class="actions-cell">
+            ${openPageLink('character', c)}
             <button class="icon-btn" onclick="editItem('character','${esc(c.id)}')" title="ویرایش">✎</button>
             <button class="icon-btn danger" onclick="deleteItem('character','${esc(c.id)}')" title="حذف">🗑</button>
           </div></td>
@@ -1599,6 +1718,46 @@
           </div></td>
         </tr>
       `).join('');
+    }
+
+    /** Members are reader accounts, not content: they come from their own endpoint
+        as {items, totals} and never enter the public bootstrap. */
+    function renderMembers(filter) {
+      const tbody = document.getElementById('tbodyMembers');
+      if (!tbody) return;
+      const list = state.members.filter(m => matches(m, [m.username, m.display_name, m.email], filter));
+      const shown = document.getElementById('countMembers');
+      if (shown) shown.textContent = list.length;
+      if (!list.length) {
+        tbody.innerHTML = emptyRow(7, '🧑‍🚀', state.members.length ? 'عضوی با این جستجو نیست' : 'هنوز هیچ خواننده‌ای حساب نساخته است');
+        return;
+      }
+      tbody.innerHTML = list.map(m => `
+        <tr>
+          <td class="td-title" style="direction:ltr;">${esc(m.username)}</td>
+          <td>${esc(m.display_name || m.username)}</td>
+          <td style="font-size:0.78rem;color:var(--text-dim);direction:ltr;">${m.email ? esc(m.email) : '—'}</td>
+          <td><span class="tag ${m.is_active ? 'tag-green' : 'tag-neutral'}">${m.is_active ? 'فعال' : 'غیرفعال'}</span></td>
+          <td>${dateCell(m.created_at)}</td>
+          <td>${seenCell(m.last_seen_at)}</td>
+          <td><div class="actions-cell">
+            <button class="icon-btn" onclick="editMember('${esc(m.id)}')" title="ویرایش">✎</button>
+            <button class="icon-btn danger" onclick="deleteMember('${esc(m.id)}')" title="حذف">🗑</button>
+          </div></td>
+        </tr>
+      `).join('');
+    }
+
+    function dateCell(value) {
+      if (!value) return '<span style="font-size:0.75rem;color:var(--text-dim);">—</span>';
+      return `<span style="font-size:0.75rem;color:var(--text-dim);white-space:nowrap;">${esc(new Date(value).toLocaleDateString('en-GB'))}</span>`;
+    }
+
+    /** last_seen_at is bumped on every gated page read, so this is real usage. */
+    function seenCell(value) {
+      if (!value) return '<span style="font-size:0.75rem;color:var(--text-dim);">هرگز وارد نشده</span>';
+      const withinWeek = Date.now() - new Date(value).getTime() < 7 * 24 * 60 * 60 * 1000;
+      return `${dateCell(value)}${withinWeek ? '<div style="font-size:0.68rem;color:var(--green);">همین هفته</div>' : ''}`;
     }
 
     function renderMessages() {
@@ -1698,6 +1857,13 @@
       document.getElementById('countTeam').textContent = state.team.length;
       document.getElementById('countMessages').textContent = state.messages.length;
       document.getElementById('countSubscribers').textContent = state.subscribers.length;
+
+      // stats.members is the {total, active, recent} object from the database,
+      // so the dashboard counts stay right even for an account that may not list members.
+      const members = stats.members || state.memberTotals;
+      const memberTotal = members.total !== undefined ? members.total : state.members.length;
+      document.getElementById('statMembers').textContent = memberTotal;
+      document.getElementById('badgeMembers').textContent = memberTotal;
     }
 
     // ============================================================
@@ -1713,7 +1879,10 @@
           { key: 'publisher', label: 'ناشر', type: 'select', options: ['Marvel', 'DC'], req: true },
           { key: 'year', label: 'سال انتشار', type: 'number', req: true },
           { key: 'desc_fa', label: 'توضیحات (فارسی)', type: 'textarea', full: true },
-          { key: 'desc_en', label: 'توضیحات (انگلیسی)', type: 'textarea', full: true }
+          { key: 'desc_en', label: 'توضیحات (انگلیسی)', type: 'textarea', full: true },
+          { key: 'body_fa', label: 'متن صفحه (فارسی)', type: 'textarea', full: true, rows: 14, hint: 'خط خالی بین پاراگراف‌ها در صفحه حفظ می‌شود' },
+          { key: 'body_en', label: 'متن صفحه (انگلیسی)', type: 'textarea', full: true, rows: 14 },
+          { key: 'slug', label: 'آدرس صفحه', type: 'text', full: true, hint: 'خالی بگذارید تا خودکار ساخته شود؛ مثلاً deadpool-war' }
         ]
       },
       article: {
@@ -1730,7 +1899,10 @@
           { key: 'date_fa', label: 'تاریخ (فارسی)', type: 'text', req: true },
           { key: 'date_en', label: 'تاریخ (English)', type: 'text', req: true },
           { key: 'desc_fa', label: 'توضیحات (فارسی)', type: 'textarea', full: true },
-          { key: 'desc_en', label: 'توضیحات (انگلیسی)', type: 'textarea', full: true }
+          { key: 'desc_en', label: 'توضیحات (انگلیسی)', type: 'textarea', full: true },
+          { key: 'body_fa', label: 'متن مقاله (فارسی)', type: 'textarea', full: true, rows: 16, hint: 'فقط عضوهای سایت این متن را می‌بینند' },
+          { key: 'body_en', label: 'متن مقاله (انگلیسی)', type: 'textarea', full: true, rows: 16 },
+          { key: 'slug', label: 'آدرس صفحه', type: 'text', full: true, hint: 'خالی بگذارید تا خودکار ساخته شود' }
         ]
       },
       movie: {
@@ -1743,7 +1915,11 @@
           { key: 'year', label: 'سال', type: 'number', req: true },
           { key: 'rating', label: 'امتیاز (۰-۱۰)', type: 'number', req: true, step: '0.1' },
           { key: 'desc_fa', label: 'توضیحات (فارسی)', type: 'textarea', full: true },
-          { key: 'desc_en', label: 'توضیحات (انگلیسی)', type: 'textarea', full: true }
+          { key: 'desc_en', label: 'توضیحات (انگلیسی)', type: 'textarea', full: true },
+          { key: 'body_fa', label: 'نقد فیلم (فارسی)', type: 'textarea', full: true, rows: 14 },
+          { key: 'body_en', label: 'نقد فیلم (انگلیسی)', type: 'textarea', full: true, rows: 14 },
+          { key: 'watchUrl', label: 'لینک مشاهده فیلم', type: 'url', full: true, hint: 'با https:// شروع شود — دکمه‌ی سبز صفحه‌ی فیلم' },
+          { key: 'slug', label: 'آدرس صفحه', type: 'text', full: true, hint: 'خالی بگذارید تا خودکار ساخته شود' }
         ]
       },
       character: {
@@ -1755,7 +1931,10 @@
           { key: 'universe', label: 'دنیا', type: 'select', options: ['Marvel', 'DC'], req: true },
           { key: 'type', label: 'نوع', type: 'select', options: [['hero', 'قهرمان'], ['villain', 'شرور']], req: true },
           { key: 'desc_fa', label: 'توضیحات (فارسی)', type: 'textarea', full: true },
-          { key: 'desc_en', label: 'توضیحات (انگلیسی)', type: 'textarea', full: true }
+          { key: 'desc_en', label: 'توضیحات (انگلیسی)', type: 'textarea', full: true },
+          { key: 'body_fa', label: 'بیوگرافی (فارسی)', type: 'textarea', full: true, rows: 14 },
+          { key: 'body_en', label: 'بیوگرافی (انگلیسی)', type: 'textarea', full: true, rows: 14 },
+          { key: 'slug', label: 'آدرس صفحه', type: 'text', full: true, hint: 'خالی بگذارید تا خودکار ساخته شود' }
         ]
       },
       team: {
@@ -1913,7 +2092,7 @@
         const val = item[f.key] !== undefined ? item[f.key] : '';
         let inputHtml = '';
         if (f.type === 'textarea') {
-          inputHtml = `<textarea id="mf_${f.key}">${esc(val)}</textarea>`;
+          inputHtml = `<textarea id="mf_${f.key}" ${f.rows ? `rows="${f.rows}"` : ''}>${esc(val)}</textarea>`;
         } else if (f.type === 'select') {
           const opts = f.options.map(o => {
             const v = Array.isArray(o) ? o[0] : o;
@@ -1929,6 +2108,7 @@
         return `<div class="form-field ${f.full ? 'full' : ''}">
           <label>${esc(f.label)} ${f.req ? '<span class="req">*</span>' : ''}</label>
           ${inputHtml}
+          ${f.hint ? `<div class="field-hint">${esc(f.hint)}</div>` : ''}
         </div>`;
       }).join('');
 
@@ -2406,6 +2586,154 @@
     }
 
     // ============================================================
+    // READER MEMBERS (the accounts visitors create on the site)
+    // ============================================================
+    let memberEditId = null;
+
+    function memberSearchValue() {
+      return document.getElementById('searchMembers').value.trim();
+    }
+
+    function rerenderMembers() {
+      renderMembers(memberSearchValue());
+    }
+
+    function replaceMember(member) {
+      const index = state.members.findIndex(m => m.id === member.id);
+      if (index === -1) state.members = [member].concat(state.members);
+      else state.members[index] = member;
+      rerenderMembers();
+    }
+
+    function markMemberFields(error, inputs) {
+      const fields = window.DEADVERSE.fieldErrors(error);
+      Object.entries(inputs).forEach(([key, id]) => {
+        const el = document.getElementById(id);
+        if (el) el.style.borderColor = fields[key] ? '#ff6b7a' : '';
+      });
+    }
+
+    function openMemberForm() {
+      closeMemberForms();
+      const card = document.getElementById('memberCreateCard');
+      card.hidden = false;
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      document.getElementById('newMemberUsername').focus();
+    }
+
+    function closeMemberForms() {
+      document.getElementById('memberCreateCard').hidden = true;
+      document.getElementById('memberEditCard').hidden = true;
+      memberEditId = null;
+      ['newMemberUsername', 'newMemberPassword', 'newMemberDisplay', 'newMemberEmail',
+       'memberEditDisplay', 'memberEditEmail', 'memberEditPassword'].forEach(key => {
+        const el = document.getElementById(key);
+        if (el) { el.value = ''; el.style.borderColor = ''; }
+      });
+    }
+
+    async function createMember() {
+      const username = document.getElementById('newMemberUsername').value.trim();
+      const password = document.getElementById('newMemberPassword').value;
+      const email = document.getElementById('newMemberEmail').value.trim();
+      if (!username || password.length < 8) {
+        toast('نام کاربری و رمزی با حداقل ۸ نویسه لازم است', 'error');
+        return;
+      }
+      const button = document.getElementById('memberCreateBtn');
+      setBusy(button, true, 'در حال ساخت…');
+      try {
+        const created = await call('/admin/members', {
+          method: 'POST',
+          body: {
+            username,
+            password,
+            email,
+            display_name: document.getElementById('newMemberDisplay').value.trim()
+          }
+        });
+        state.members = [created.data].concat(state.members);
+        closeMemberForms();
+        rerenderMembers();
+        toast('حساب ساخته شد — رمز را فقط به خود خواننده بدهید');
+        await refreshStats();
+      } catch (error) {
+        if (!error.reported) markMemberFields(error, { username: 'newMemberUsername', password: 'newMemberPassword', email: 'newMemberEmail' });
+      } finally {
+        setBusy(button, false);
+      }
+    }
+
+    function editMember(id) {
+      const member = state.members.find(m => m.id === id);
+      if (!member) return;
+      memberEditId = id;
+      document.getElementById('memberCreateCard').hidden = true;
+      document.getElementById('memberEditName').textContent = member.username;
+      document.getElementById('memberEditDisplay').value = member.display_name || '';
+      document.getElementById('memberEditEmail').value = member.email || '';
+      document.getElementById('memberEditActive').value = member.is_active ? '1' : '0';
+      document.getElementById('memberEditPassword').value = '';
+      const card = document.getElementById('memberEditCard');
+      card.hidden = false;
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    async function saveMemberEdit() {
+      if (!memberEditId) return;
+      const id = memberEditId;
+      const displayName = document.getElementById('memberEditDisplay').value.trim();
+      const email = document.getElementById('memberEditEmail').value.trim();
+      const password = document.getElementById('memberEditPassword').value;
+      const isActive = document.getElementById('memberEditActive').value === '1';
+      if (!displayName) {
+        toast('نام نمایشی خالی نمی‌شود', 'error');
+        return;
+      }
+      if (password && password.length < 8) {
+        toast('رمز جدید حداقل ۸ نویسه', 'error');
+        return;
+      }
+      const button = document.getElementById('memberSaveBtn');
+      setBusy(button, true, 'در حال ذخیره…');
+      try {
+        const updated = await call(`/admin/members/${encodeURIComponent(id)}`, {
+          method: 'PATCH',
+          body: { display_name: displayName, email, is_active: isActive }
+        });
+        replaceMember(updated.data);
+        if (password) {
+          await call(`/admin/members/${encodeURIComponent(id)}/password`, { method: 'POST', body: { password } });
+          toast('ذخیره شد و نشست‌های آن عضو باطل شد');
+        } else {
+          toast('تغییرات ذخیره شد');
+        }
+        closeMemberForms();
+        await refreshStats();
+      } catch (error) {
+        if (!error.reported) markMemberFields(error, { display_name: 'memberEditDisplay', email: 'memberEditEmail' });
+      } finally {
+        setBusy(button, false);
+      }
+    }
+
+    async function deleteMember(id) {
+      const member = state.members.find(m => m.id === id);
+      if (!member) return;
+      if (!confirm(`حساب «${member.username}» حذف شود؟ دیگر نمی‌تواند مقالات را بخواند.`)) return;
+      try {
+        await call(`/admin/members/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        if (memberEditId === id) closeMemberForms();
+        state.members = state.members.filter(m => m.id !== id);
+        rerenderMembers();
+        toast('حساب حذف شد');
+        await refreshStats();
+      } catch (error) {
+        /* reported by call() */
+      }
+    }
+
+    // ============================================================
     // LANG TOGGLE (panel interface language only)
     // ============================================================
     document.getElementById('langToggle').addEventListener('click', () => {
@@ -2426,6 +2754,7 @@
     document.getElementById('searchMovies').addEventListener('input', e => renderMovies(e.target.value));
     document.getElementById('searchCharacters').addEventListener('input', e => renderCharacters(e.target.value));
     document.getElementById('searchTeam').addEventListener('input', e => renderTeam(e.target.value));
+    document.getElementById('searchMembers').addEventListener('input', e => renderMembers(e.target.value));
 
     // ============================================================
     // EVENTS

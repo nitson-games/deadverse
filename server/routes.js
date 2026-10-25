@@ -6,9 +6,15 @@ import {
   contactSchema,
   newsletterSchema,
   loginSchema,
-  changePasswordSchema
+  changePasswordSchema,
+  memberLoginSchema,
+  memberPasswordSchema,
+  memberProfileSchema,
+  memberResetSchema,
+  memberSignupSchema
 } from './validate.js';
-import { hashPassword, signToken, verifyPassword } from './auth.js';
+import { hashPassword, signMemberToken, signToken, verifyPassword } from './auth.js';
+import { createChallenge, verifyChallenge, verifyTurnstile } from './spam-guard.js';
 import {
   PERMISSIONS,
   PERMISSION_LABELS,
@@ -29,7 +35,48 @@ const COLLECTIONS = {
   team: 'team'
 };
 
+/** The four kinds that own a page, keyed by the URL segment the site uses. */
+const ITEM_COLLECTIONS = {
+  comics: 'comic',
+  articles: 'article',
+  movies: 'movie',
+  characters: 'character'
+};
+
+/** Reading these pages takes a member account; the rest of the site stays open. */
+const MEMBER_ONLY = new Set(['article']);
+
 export { SEEDS, SITE_SEED };
+
+/** Vercel hands the real client address in x-forwarded-for; the first entry is
+    the visitor, the rest is the proxy chain. */
+function ipOf(req) {
+  const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  return forwarded || req.socket?.remoteAddress || 'unknown';
+}
+
+/**
+ * The card shape the homepage needs. `body` lives only on the item page, and for
+ * articles that page is behind a login — so it never travels inside bootstrap,
+ * which is cached publicly for 20 seconds.
+ */
+function toCard(item) {
+  const { body_fa, body_en, ...card } = item;
+  return card;
+}
+
+/** `password_hash` and `token_version` must never leave the API. */
+function publicMember(row) {
+  return {
+    id: row.id,
+    username: row.username,
+    email: row.email || '',
+    display_name: row.display_name,
+    is_active: row.is_active !== false,
+    created_at: row.created_at,
+    last_seen_at: row.last_seen_at || null
+  };
+}
 
 function validationError(error) {
   return badRequest(
@@ -88,6 +135,39 @@ export function buildRoutes(ctx) {
       return next();
     });
 
+  /** Readers are a separate account kind; only the gated article pages use this. */
+  const requireMember = h(async (req, res, next) => {
+    const member = await ctx.getMemberFromRequest(req);
+    if (!member) throw unauthorized('برای خواندن این صفحه عضو شوید');
+    req.member = member;
+    return next();
+  });
+
+  /**
+   * Everything that stands between a script and the inbox. Order matters: the
+   * honeypot is answered first and answered *quietly*, because telling a bot it
+   * was caught only teaches it to fill the field with a space.
+   */
+  async function spamGate(req) {
+    const body = req.body || {};
+    if (String(body.website || '').length > 0) return { dropped: true };
+
+    if (env.turnstile.siteKey && env.turnstile.secret) {
+      const ok = await verifyTurnstile({
+        secret: env.turnstile.secret,
+        token: body.turnstile,
+        remoteip: ipOf(req)
+      });
+      if (!ok) throw badRequest('راستی‌آزمایی انجام نشد، دوباره امتحان کنید');
+      return { dropped: false, method: 'turnstile' };
+    }
+
+    if (!verifyChallenge(body.challenge, body.answer, env.jwtSecret, ipOf(req))) {
+      throw badRequest('جواب سوال درست نبود یا وقتش تمام شده؛ دوباره بپرسید');
+    }
+    return { dropped: false, method: 'challenge' };
+  }
+
   // --------------------------------------------------------------- public API
   router.get('/health', (req, res) => {
     res.json({ ok: true, service: 'deadverse-api', time: new Date().toISOString() });
@@ -107,11 +187,47 @@ export function buildRoutes(ctx) {
       res.set('Cache-Control', 'public, max-age=20, must-revalidate');
       res.json({
         site: site || EMPTY_SITE_CLIENT,
-        comics,
-        articles,
-        movies,
-        characters,
+        comics: comics.map(toCard),
+        articles: articles.map(toCard),
+        movies: movies.map(toCard),
+        characters: characters.map(toCard),
         team
+      });
+    })
+  );
+
+  // ---------------------------------------------------- public pages per item
+  /**
+   * One page per record at /comics/<slug> and friends. The lookup takes the slug
+   * first and falls back to the id, so an admin previewing a brand-new record
+   * still gets a working link before its slug is shared anywhere.
+   */
+  for (const [segment, type] of Object.entries(ITEM_COLLECTIONS)) {
+    const gate = MEMBER_ONLY.has(type) ? [requireMember] : [];
+    router.get(
+      `/${segment}/:slug`,
+      ...gate,
+      h(async (req, res) => {
+        const slug = String(req.params.slug || '').trim();
+        if (!slug) throw notFound('این صفحه وجود ندارد');
+        const item = (await repo.findBySlug(type, slug)) || (await repo.find(type, slug));
+        if (!item) throw notFound('این صفحه وجود ندارد یا حذف شده است');
+        res.set('Cache-Control', MEMBER_ONLY.has(type) ? 'no-store' : 'public, max-age=20, must-revalidate');
+        res.json(item);
+      })
+    );
+  }
+
+  router.get(
+    '/challenge',
+    ctx.limiter.challenge,
+    h(async (req, res) => {
+      if (!env.jwtSecret) throw new ApiError(503, 'not_configured', 'راستی‌آزمایی فعلاً در دسترس نیست');
+      res.set('Cache-Control', 'no-store');
+      res.json({
+        ...createChallenge(env.jwtSecret, ipOf(req)),
+        // The page shows the maths question only when no Turnstile widget is set up.
+        turnstile_sitekey: env.turnstile.siteKey || ''
       });
     })
   );
@@ -141,8 +257,30 @@ export function buildRoutes(ctx) {
     '/contact',
     ctx.limiter.contact,
     h(async (req, res) => {
+      const gate = await spamGate(req);
+      // A honeypot hit answers as if it worked, and stores nothing.
+      if (gate.dropped) return res.status(201).json({ ok: true });
+
       const parsed = contactSchema.safeParse(req.body);
       if (!parsed.success) throw validationError(parsed.error);
+
+      const cooldownMs = Math.max(0, env.contactCooldownMinutes) * 60_000;
+      if (cooldownMs > 0) {
+        const last = await repo.lastMessageAt(parsed.data.email);
+        const waited = last ? Date.now() - new Date(last).getTime() : cooldownMs + 1;
+        if (waited < cooldownMs) {
+          const minutes = Math.ceil((cooldownMs - waited) / 60_000);
+          throw new ApiError(
+            429,
+            'cooldown',
+            `شما تازه پیام فرستاده‌اید؛ ${minutes} دقیقه دیگر دوباره امتحان کنید`
+          );
+        }
+      }
+      if (await repo.messageIsDuplicate(parsed.data)) {
+        throw badRequest('این متن را همین چند وقت پیش فرستاده‌اید');
+      }
+
       const inserted = await repo.insertMessage(parsed.data);
       res.status(201).json({ ok: true, id: inserted });
     })
@@ -158,6 +296,94 @@ export function buildRoutes(ctx) {
       res.status(result.created ? 201 : 200).json({ ok: true, already_subscribed: !result.created });
     })
   );
+
+  // ---------------------------------------------------------- member accounts
+  /** The token is what unlocks the article pages; the profile is what the header shows. */
+  const memberAnswer = (req, res, member, status) => {
+    if (status) res.status(status);
+    res.json({
+      token: signMemberToken(member, { secret: env.jwtSecret, ttl: env.memberTokenTtl }),
+      member: publicMember(member)
+    });
+  };
+
+  router.post(
+    '/member/signup',
+    ctx.limiter.signup,
+    h(async (req, res) => {
+      // Same order as /contact: the honeypot is answered before the payload is
+      // examined, so a bot that filled it is dropped instead of taught.
+      const gate = await spamGate(req);
+      if (gate.dropped) return res.status(201).json({ ok: true });
+
+      const parsed = memberSignupSchema.safeParse(req.body);
+      if (!parsed.success) throw validationError(parsed.error);
+
+      const { username, email } = parsed.data;
+      if (await repo.findMemberByLogin(username)) {
+        throw conflict('این نام کاربری از قبل گرفته شده است');
+      }
+      if (email && (await repo.findMemberByLogin(email))) {
+        throw conflict('این ایمیل از قبل روی یک حساب دیگر ثبت شده است');
+      }
+      const member = await repo.createMember({
+        username,
+        email,
+        passwordHash: await hashPassword(parsed.data.password),
+        displayName: parsed.data.display_name || username
+      });
+      memberAnswer(req, res, member, 201);
+    })
+  );
+
+  router.post(
+    '/member/login',
+    ctx.limiter.memberLogin,
+    h(async (req, res) => {
+      const parsed = memberLoginSchema.safeParse(req.body);
+      if (!parsed.success) throw badRequest('نام کاربری و رمز عبور لازم است');
+      const member = await repo.findMemberByLogin(parsed.data.login);
+      const passwordOk = member ? await verifyPassword(parsed.data.password, member.password_hash) : false;
+      // Same words either way, and the hash is still compared when the account is
+      // disabled, so the response never reveals which usernames exist.
+      if (!passwordOk) throw unauthorized('نام کاربری یا رمز عبور اشتباه است');
+      if (member.is_active === false) throw unauthorized('این حساب غیرفعال شده است');
+      await repo.touchMember(member.id);
+      memberAnswer(req, res, member);
+    })
+  );
+
+  router.get(
+    '/member/session',
+    requireMember,
+    h(async (req, res) => {
+      // Hitting this route is the proof a member is actually reading, so the panel
+      // can tell an account that logs in weekly from one that was made and forgotten.
+      const seen = (await repo.touchMember(req.member.id)) || req.member;
+      res.json({ member: publicMember(seen) });
+    })
+  );
+
+  router.patch(
+    '/member/password',
+    requireMember,
+    ctx.limiter.memberLogin,
+    h(async (req, res) => {
+      const parsed = memberPasswordSchema.safeParse(req.body);
+      if (!parsed.success) throw validationError(parsed.error);
+      if (!(await verifyPassword(parsed.data.current_password, req.member.password_hash))) {
+        throw badRequest('رمز فعلی اشتباه است');
+      }
+      await repo.updateMemberPassword(req.member.id, await hashPassword(parsed.data.new_password));
+      res.json({ ok: true, message: 'رمز عوض شد؛ همه‌ی دستگاه‌ها باید دوباره وارد شوند' });
+    })
+  );
+
+  /** Deleting your own account is the one thing a reader should never have to ask for. */
+  router.delete('/member/account', requireMember, h(async (req, res) => {
+    if (!(await repo.deleteMember(req.member.id))) throw notFound('حساب پیدا نشد');
+    res.json({ ok: true });
+  }));
 
   // -------------------------------------------------------------- admin: auth
   router.post(
@@ -297,18 +523,22 @@ export function buildRoutes(ctx) {
 
   // ------------------------------------------------------ admin: collections
   const canContent = requirePermission('content');
+  const canTeam = requirePermission('team');
 
   for (const [collection, type] of Object.entries(COLLECTIONS)) {
-    router.get(`/admin/${collection}`, canContent, h(async (req, res) => {
+    // The team section has its own tick, so `content` no longer reaches it.
+    const guard = type === 'team' ? canTeam : canContent;
+
+    router.get(`/admin/${collection}`, guard, h(async (req, res) => {
       res.json(await repo.list(type));
     }));
 
-    router.post(`/admin/${collection}`, canContent, h(async (req, res) => {
+    router.post(`/admin/${collection}`, guard, h(async (req, res) => {
       const input = parseEntityInput(type, req.body);
       res.status(201).json(await repo.create(type, input));
     }));
 
-    router.put(`/admin/${collection}/:id`, canContent, h(async (req, res) => {
+    router.put(`/admin/${collection}/:id`, guard, h(async (req, res) => {
       const input = parseEntityInput(type, req.body);
       const oldRow = await repo.findRaw(type, req.params.id);
       if (!oldRow) throw notFound('این مورد وجود ندارد یا حذف شده است');
@@ -317,7 +547,7 @@ export function buildRoutes(ctx) {
       res.json(updated);
     }));
 
-    router.delete(`/admin/${collection}/:id`, canContent, h(async (req, res) => {
+    router.delete(`/admin/${collection}/:id`, guard, h(async (req, res) => {
       const oldRow = await repo.findRaw(type, req.params.id);
       if (!oldRow) throw notFound('این مورد وجود ندارد یا حذف شده است');
       const removed = await repo.remove(type, req.params.id);
@@ -325,6 +555,80 @@ export function buildRoutes(ctx) {
       res.json({ ok: true, removed });
     }));
   }
+
+  // --------------------------------------------------------- admin: members
+  const canMembers = requirePermission('members');
+
+  router.get('/admin/members', canMembers, h(async (req, res) => {
+    const query = String(req.query?.q || '').slice(0, 80);
+    res.json({
+      items: await repo.listMembers({ query }),
+      totals: await repo.countMembers()
+    });
+  }));
+
+  /** Hand-built accounts, for the reader who mails you asking for access. */
+  router.post(
+    '/admin/members',
+    canMembers,
+    ctx.limiter.login,
+    h(async (req, res) => {
+      const parsed = memberSignupSchema.safeParse(req.body);
+      if (!parsed.success) throw validationError(parsed.error);
+      if (await repo.findMemberByLogin(parsed.data.username)) {
+        throw conflict('این نام کاربری از قبل گرفته شده است');
+      }
+      if (parsed.data.email && (await repo.findMemberByLogin(parsed.data.email))) {
+        throw conflict('این ایمیل از قبل روی یک حساب دیگر ثبت شده است');
+      }
+      const member = await repo.createMember({
+        username: parsed.data.username,
+        email: parsed.data.email,
+        passwordHash: await hashPassword(parsed.data.password),
+        displayName: parsed.data.display_name || parsed.data.username
+      });
+      res.status(201).json(publicMember(member));
+    })
+  );
+
+  router.patch('/admin/members/:id', canMembers, h(async (req, res) => {
+    const target = await repo.findMemberById(req.params.id);
+    if (!target) throw notFound('این عضو وجود ندارد یا حذف شده است');
+    const parsed = memberProfileSchema.safeParse(req.body);
+    if (!parsed.success) throw validationError(parsed.error);
+    if (parsed.data.email && parsed.data.email.toLowerCase() !== target.email) {
+      const clash = await repo.findMemberByLogin(parsed.data.email);
+      if (clash && clash.id !== target.id) throw conflict('این ایمیل روی یک حساب دیگر است');
+    }
+    const updated = await repo.updateMemberProfile(target.id, {
+      displayName: parsed.data.display_name,
+      email: parsed.data.email,
+      isActive: parsed.data.is_active,
+      // Switching an account off has to take effect on the page they are reading
+      // right now, which only a bumped token_version does.
+      logoutEverywhere: true
+    });
+    res.json(publicMember(updated));
+  }));
+
+  router.post(
+    '/admin/members/:id/password',
+    canMembers,
+    ctx.limiter.login,
+    h(async (req, res) => {
+      const target = await repo.findMemberById(req.params.id);
+      if (!target) throw notFound('این عضو وجود ندارد یا حذف شده است');
+      const parsed = memberResetSchema.safeParse(req.body);
+      if (!parsed.success) throw validationError(parsed.error);
+      await repo.updateMemberPassword(target.id, await hashPassword(parsed.data.password));
+      res.json({ ok: true, message: 'رمز عوض شد و نشست‌های آن حساب باطل شد' });
+    })
+  );
+
+  router.delete('/admin/members/:id', canMembers, h(async (req, res) => {
+    if (!(await repo.deleteMember(req.params.id))) throw notFound('این عضو وجود ندارد یا حذف شده است');
+    res.json({ ok: true });
+  }));
 
   // ------------------------------------------------------------ admin: inbox
   const canMessages = requirePermission('messages');
@@ -386,7 +690,7 @@ export function buildRoutes(ctx) {
 
   // -------------------------------------------------------------- admin: stats
   router.get('/admin/stats', requireAdmin, h(async (req, res) => {
-    const [comics, articles, movies, characters, team, unread, subscribers, messages, media] =
+    const [comics, articles, movies, characters, team, unread, subscribers, messages, media, members] =
       await Promise.all([
         repo.count('comic'),
         repo.count('article'),
@@ -396,7 +700,8 @@ export function buildRoutes(ctx) {
         repo.countUnreadMessages(),
         repo.countSubscribers(),
         repo.listMessages(1),
-        repo.mediaUsage()
+        repo.mediaUsage(),
+        repo.countMembers()
       ]);
     res.json({
       comics,
@@ -406,6 +711,7 @@ export function buildRoutes(ctx) {
       team,
       unread,
       subscribers,
+      members,
       mediaCount: media.count,
       mediaBytes: media.bytes,
       lastMessageAt: messages[0]?.created_at || null

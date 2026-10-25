@@ -20,6 +20,10 @@ CREATE TABLE IF NOT EXISTS admins (
 ALTER TABLE admins ADD COLUMN IF NOT EXISTS permissions text[];
 ALTER TABLE admins ADD COLUMN IF NOT EXISTS is_active boolean NOT NULL DEFAULT true;
 
+-- Every content row owns one addressable page, so it needs a URL-safe handle
+-- next to the opaque id. Rows created before this column got '' — the partial
+-- unique index lets any number of them coexist while still forbidding two real
+-- slugs from clashing. repo.js fills a slug on every create and update.
 CREATE TABLE IF NOT EXISTS comics (
   id              text PRIMARY KEY,
   title_fa        text NOT NULL,
@@ -28,6 +32,9 @@ CREATE TABLE IF NOT EXISTS comics (
   year            integer NOT NULL CHECK (year >= 1900 AND year <= 2100),
   desc_fa         text NOT NULL DEFAULT '',
   desc_en         text NOT NULL DEFAULT '',
+  body_fa         text NOT NULL DEFAULT '',
+  body_en         text NOT NULL DEFAULT '',
+  slug            text NOT NULL DEFAULT '',
   image_url       text NOT NULL DEFAULT '',
   image_public_id text NOT NULL DEFAULT '',
   sort_order      integer NOT NULL DEFAULT 0,
@@ -44,6 +51,9 @@ CREATE TABLE IF NOT EXISTS articles (
   date_en            text NOT NULL DEFAULT '',
   desc_fa            text NOT NULL DEFAULT '',
   desc_en            text NOT NULL DEFAULT '',
+  body_fa            text NOT NULL DEFAULT '',
+  body_en            text NOT NULL DEFAULT '',
+  slug               text NOT NULL DEFAULT '',
   cover_image_url   text NOT NULL DEFAULT '',
   cover_image_pid   text NOT NULL DEFAULT '',
   mid_image_url     text NOT NULL DEFAULT '',
@@ -64,6 +74,10 @@ CREATE TABLE IF NOT EXISTS movies (
   rating          numeric(3, 1) NOT NULL CHECK (rating >= 0 AND rating <= 10),
   desc_fa         text NOT NULL DEFAULT '',
   desc_en         text NOT NULL DEFAULT '',
+  body_fa         text NOT NULL DEFAULT '',
+  body_en         text NOT NULL DEFAULT '',
+  slug            text NOT NULL DEFAULT '',
+  watch_url       text NOT NULL DEFAULT '',
   image_url       text NOT NULL DEFAULT '',
   image_public_id text NOT NULL DEFAULT '',
   sort_order      integer NOT NULL DEFAULT 0,
@@ -79,6 +93,9 @@ CREATE TABLE IF NOT EXISTS characters (
   kind            text NOT NULL CHECK (kind IN ('hero', 'villain')),
   desc_fa         text NOT NULL DEFAULT '',
   desc_en         text NOT NULL DEFAULT '',
+  body_fa         text NOT NULL DEFAULT '',
+  body_en         text NOT NULL DEFAULT '',
+  slug            text NOT NULL DEFAULT '',
   image_url       text NOT NULL DEFAULT '',
   image_public_id text NOT NULL DEFAULT '',
   sort_order      integer NOT NULL DEFAULT 0,
@@ -154,3 +171,44 @@ ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS social_x text NOT NULL DEFAUL
 ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS social_instagram text NOT NULL DEFAULT '';
 ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS social_youtube text NOT NULL DEFAULT '';
 ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS social_discord text NOT NULL DEFAULT '';
+
+-- Databases that already hold content predate per-item pages. The columns arrive
+-- empty and migrate.js then fills a slug for every row that has none, so old
+-- records keep their text and still get a shareable address.
+ALTER TABLE comics ADD COLUMN IF NOT EXISTS slug text NOT NULL DEFAULT '';
+ALTER TABLE comics ADD COLUMN IF NOT EXISTS body_fa text NOT NULL DEFAULT '';
+ALTER TABLE comics ADD COLUMN IF NOT EXISTS body_en text NOT NULL DEFAULT '';
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS slug text NOT NULL DEFAULT '';
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS body_fa text NOT NULL DEFAULT '';
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS body_en text NOT NULL DEFAULT '';
+ALTER TABLE movies ADD COLUMN IF NOT EXISTS slug text NOT NULL DEFAULT '';
+ALTER TABLE movies ADD COLUMN IF NOT EXISTS body_fa text NOT NULL DEFAULT '';
+ALTER TABLE movies ADD COLUMN IF NOT EXISTS body_en text NOT NULL DEFAULT '';
+ALTER TABLE movies ADD COLUMN IF NOT EXISTS watch_url text NOT NULL DEFAULT '';
+ALTER TABLE characters ADD COLUMN IF NOT EXISTS slug text NOT NULL DEFAULT '';
+ALTER TABLE characters ADD COLUMN IF NOT EXISTS body_fa text NOT NULL DEFAULT '';
+ALTER TABLE characters ADD COLUMN IF NOT EXISTS body_en text NOT NULL DEFAULT '';
+
+CREATE UNIQUE INDEX IF NOT EXISTS comics_slug_unique ON comics (slug) WHERE slug <> '';
+CREATE UNIQUE INDEX IF NOT EXISTS articles_slug_unique ON articles (slug) WHERE slug <> '';
+CREATE UNIQUE INDEX IF NOT EXISTS movies_slug_unique ON movies (slug) WHERE slug <> '';
+CREATE UNIQUE INDEX IF NOT EXISTS characters_slug_unique ON characters (slug) WHERE slug <> '';
+
+-- Site readers. Separate from `admins` on purpose: a member token can only open
+-- the pages that are gated, never the panel. `token_version` invalidates every
+-- session of one member the same way it does for an admin.
+CREATE TABLE IF NOT EXISTS members (
+  id            text PRIMARY KEY,
+  username      text NOT NULL UNIQUE,
+  email         text NOT NULL DEFAULT '',
+  password_hash text NOT NULL,
+  display_name  text NOT NULL DEFAULT '',
+  is_active     boolean NOT NULL DEFAULT true,
+  token_version integer NOT NULL DEFAULT 1,
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  updated_at    timestamptz NOT NULL DEFAULT now(),
+  last_seen_at  timestamptz
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS members_email_unique ON members (lower(email)) WHERE email <> '';
+CREATE INDEX IF NOT EXISTS members_created_at_idx ON members (created_at DESC);

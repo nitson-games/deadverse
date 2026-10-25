@@ -51,6 +51,31 @@ async function main() {
     console.log(`→ دسترسی کامل به ${backfilled.rows.map((r) => r.username).join(', ')} داده شد`);
   }
 
+  /*
+   * `team` and `members` are new keys, and nobody can switch them on for
+   * themselves — editing your own permissions is blocked to prevent lockout. So
+   * the migration hands them out by the same rule the rest of the layer follows:
+   * whoever could already edit content keeps editing the team (that is what the
+   * old single `content` key meant), and whoever manages staff also gets the new
+   * member list. Sub-admins created afterwards receive exactly their own ticks.
+   */
+  const grants = [
+    { key: 'team', holds: 'content', label: 'ویرایش تیم' },
+    { key: 'members', holds: 'admins', label: 'بخش عضوها' }
+  ];
+  for (const grant of grants) {
+    const { rows } = await db.query(
+      `UPDATE admins
+          SET permissions = array_append(permissions, $1)
+        WHERE $2 = ANY(permissions) AND NOT ($1 = ANY(permissions))
+        RETURNING username`,
+      [grant.key, grant.holds]
+    );
+    if (rows.length) {
+      console.log(`→ دسترسی «${grant.label}» به ${rows.map((r) => r.username).join(', ')} اضافه شد`);
+    }
+  }
+
   const admins = await repo.countAdmins();
   let credentials = null;
   if (admins === 0) {
@@ -77,6 +102,14 @@ async function main() {
     }
     for (const input of seedInputs(type)) await repo.create(type, parseEntityInput(type, input));
     console.log(`→ ${type}: ${seedInputs(type).length} رکورد پیش‌فرض seed شد`);
+  }
+
+  // Content written before per-item pages has an empty slug; without this the
+  // new /comics/<address> links would 404 for every existing record.
+  for (const type of types) {
+    if (!repo.entities[type].hasSlug) continue;
+    const filled = await repo.backfillSlugs(type);
+    if (filled) console.log(`→ ${type}: ${filled} آدرس تازه ساخته شد`);
   }
 
   if (!(await repo.getSite())) {

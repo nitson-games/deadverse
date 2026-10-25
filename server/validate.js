@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { badRequest } from './errors.js';
 import { PERMISSIONS } from './permissions.js';
 import { MEDIA_ID_PATTERN } from './media.js';
+import { SLUG_PATTERN } from './repo.js';
 
 const TEXT_MAX = 4000;
 const URL_MAX = 600;
@@ -58,6 +59,41 @@ const year = z.coerce.number().int().min(1900).max(2100);
 const publisher = z.enum(['Marvel', 'DC']);
 const rating = z.coerce.number().min(0).max(10);
 
+/**
+ * The long-form text living on an item's own page. It is not trimmed to
+ * requiredText because a record may legitimately exist before its page is
+ * written — the card shows `desc`, the page shows `body`.
+ */
+const bodyText = z.string().max(60_000).default('');
+
+/**
+ * Empty means "make one for me": repo.js derives the address from the English
+ * title and adds a counter if it is taken, so the panel can leave this blank and
+ * still get a shareable link.
+ */
+const slug = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .max(90)
+  .default('')
+  .refine((v) => v === '' || SLUG_PATTERN.test(v), {
+    message: 'آدرس فقط حرف کوچک، رقم و خط تیره باشد (مثلاً spider-man-homecoming)'
+  });
+
+/**
+ * Where to watch a film. http is allowed next to https because plenty of
+ * streaming links are still plain http; the scheme check is what keeps a
+ * `javascript:` string out of an anchor.
+ */
+const watchUrl = z
+  .string()
+  .trim()
+  .default('')
+  .refine((v) => v === '' || (/^https?:\/\//i.test(v) && v.length <= URL_MAX), {
+    message: 'لینک باید با http:// یا https:// شروع شود یا خالی بماند'
+  });
+
 export const comicSchema = z.object({
   title_fa: requiredText(),
   title_en: requiredText(),
@@ -65,6 +101,9 @@ export const comicSchema = z.object({
   year,
   desc_fa: optionalText(),
   desc_en: optionalText(),
+  body_fa: bodyText,
+  body_en: bodyText,
+  slug,
   image: imageUrl,
   imagePublicId: publicId
 });
@@ -78,6 +117,9 @@ export const articleSchema = z
     date_en: requiredText(80),
     desc_fa: optionalText(),
     desc_en: optionalText(),
+    body_fa: bodyText,
+    body_en: bodyText,
+    slug,
     coverImage: imageUrl,
     coverImagePublicId: publicId,
     midImage: imageUrl,
@@ -87,17 +129,24 @@ export const articleSchema = z
   })
   .transform(({ cat, ...rest }) => ({ category: cat, ...rest }));
 
-export const movieSchema = z.object({
-  name_fa: requiredText(),
-  name_en: requiredText(),
-  universe: publisher,
-  year,
-  rating,
-  desc_fa: optionalText(),
-  desc_en: optionalText(),
-  image: imageUrl,
-  imagePublicId: publicId
-});
+export const movieSchema = z
+  .object({
+    name_fa: requiredText(),
+    name_en: requiredText(),
+    universe: publisher,
+    year,
+    rating,
+    desc_fa: optionalText(),
+    desc_en: optionalText(),
+    body_fa: bodyText,
+    body_en: bodyText,
+    slug,
+    watchUrl,
+    image: imageUrl,
+    imagePublicId: publicId
+  })
+  // The panel speaks camelCase like the rest of the wire shape; the column is snake.
+  .transform(({ watchUrl: link, ...rest }) => ({ ...rest, watch_url: link }));
 
 export const characterSchema = z
   .object({
@@ -107,6 +156,9 @@ export const characterSchema = z
     type: z.enum(['hero', 'villain']),
     desc_fa: optionalText(),
     desc_en: optionalText(),
+    body_fa: bodyText,
+    body_en: bodyText,
+    slug,
     image: imageUrl,
     imagePublicId: publicId
   })
@@ -158,11 +210,22 @@ export const siteSchema = z.object({
   social_discord: s.socialDiscord
 }));
 
+/**
+ * The contact form's anti-automation fields. `website` is a honeypot — it is
+ * hidden from people by CSS and filled only by a bot that parses the markup, and
+ * a submission containing it is dropped without saying why. The two challenge
+ * fields carry the answer and the signed token from /api/challenge; routes.js
+ * checks them because that needs the secret and the client IP.
+ */
 export const contactSchema = z.object({
   name: requiredText(120),
   email: z.string().trim().toLowerCase().email().max(200),
   subject: requiredText(200),
-  message: requiredText(4000)
+  message: requiredText(4000),
+  website: z.string().max(0).default(''),
+  challenge: z.string().trim().max(400).default(''),
+  answer: z.string().trim().max(20).default(''),
+  turnstile: z.string().trim().max(2000).default('')
 });
 
 export const newsletterSchema = z.object({
@@ -173,6 +236,60 @@ export const loginSchema = z.object({
   username: requiredText(60).transform((v) => v.toLowerCase()),
   password: requiredText(200)
 });
+
+/**
+ * Reader accounts. One login field takes either the username or the email, so the
+ * form does not have to ask which one was used at signup; the lookup in repo.js
+ * matches both. Passwords are a notch shorter than an admin's on purpose — this
+ * account unlocks articles, not the panel.
+ */
+const memberUsername = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .regex(/^[a-z0-9._-]{3,32}$/, 'نام کاربری ۳ تا ۳۲ نویسه و فقط حروف کوچک، رقم، نقطه، خط تیره یا آندرلاین');
+
+const memberPassword = z.string().min(8, 'رمز عبور حداقل ۸ کاراکتر').max(200);
+
+/** Optional, but never junk: an address is a unique index in the database. */
+const optionalEmail = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .max(200)
+  .refine((v) => v === '' || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v), { message: 'ایمیل معتبر نیست' })
+  .default('');
+
+export const memberSignupSchema = z.object({
+  username: memberUsername,
+  email: optionalEmail,
+  password: memberPassword,
+  display_name: optionalText(80),
+  website: z.string().max(0).default(''),
+  challenge: z.string().trim().max(400).default(''),
+  answer: z.string().trim().max(20).default(''),
+  turnstile: z.string().trim().max(2000).default('')
+});
+
+export const memberLoginSchema = z.object({
+  login: requiredText(120).transform((v) => v.toLowerCase()),
+  password: requiredText(200)
+});
+
+/** A reader changing their own password has to prove the old one. */
+export const memberPasswordSchema = z.object({
+  current_password: requiredText(200),
+  new_password: memberPassword
+});
+
+/** What an admin may change on a member account; the password has its own call. */
+export const memberProfileSchema = z.object({
+  display_name: requiredText(80),
+  email: optionalEmail,
+  is_active: z.boolean().default(true)
+});
+
+export const memberResetSchema = z.object({ password: memberPassword });
 
 export const changePasswordSchema = z.object({
   current_password: requiredText(200),

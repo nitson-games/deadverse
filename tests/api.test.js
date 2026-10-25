@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 import request from 'supertest';
 import { resetRateLimits } from '../server/rate-limit.js';
 import { SITE_SEED } from '../server/seed.js';
-import { EXTERNAL_IMG, EXTERNAL_PID, PASSWORD, PNG_PIXEL, boot, tokenFor } from './helpers.js';
+import { EXTERNAL_IMG, EXTERNAL_PID, PASSWORD, PNG_PIXEL, boot, tokenFor, withChallenge } from './helpers.js';
 import { MAX_MEDIA_BYTES } from '../server/media.js';
 
 describe('public API', () => {
@@ -30,13 +30,18 @@ describe('public API', () => {
   it('keeps the wire shape the frontend already renders', async () => {
     const { app } = await boot();
     const { body } = await request(app).get('/api/bootstrap');
-    assert.deepEqual(Object.keys(body.comics[0]).sort(), ['desc_en', 'desc_fa', 'id', 'image', 'publisher', 'title_en', 'title_fa', 'year']);
+    assert.deepEqual(
+      Object.keys(body.comics[0]).sort(),
+      ['desc_en', 'desc_fa', 'id', 'image', 'publisher', 'slug', 'title_en', 'title_fa', 'year']
+    );
     assert.equal(typeof body.comics[0].year, 'number');
     assert.equal(typeof body.movies[0].rating, 'number');
     assert.equal(body.articles[0].cat, 'marvel');
     assert.equal(body.characters[0].type, 'hero');
     assert.equal(body.team[0].role_fa, 'سردبیر');
     assert.ok(body.comics[0].desc_fa.length > 10, 'descriptions travel with the record');
+    assert.equal(body.comics[0].body_fa, undefined, 'the page text never rides in bootstrap');
+    assert.ok(body.comics[0].slug.length > 3, 'every card already knows its own address');
   });
 
   it('falls back to default copy when settings are missing', async () => {
@@ -50,7 +55,7 @@ describe('public API', () => {
     const { app, store } = await boot();
     const res = await request(app)
       .post('/api/contact')
-      .send({ name: 'زهرا', email: 'Zahra@Example.com', subject: 'سلام', message: 'خسته نباشید' });
+      .send(await withChallenge(app, { name: 'زهرا', email: 'Zahra@Example.com', subject: 'سلام', message: 'خسته نباشید' }));
     assert.equal(res.status, 201);
     assert.equal(store.messages.length, 1);
     assert.equal(store.messages[0].email, 'zahra@example.com', 'email normalised');
@@ -58,7 +63,9 @@ describe('public API', () => {
 
   it('rejects an invalid contact payload with field details', async () => {
     const { app, store } = await boot();
-    const res = await request(app).post('/api/contact').send({ name: '', email: 'nope', subject: '', message: 'x' });
+    const res = await request(app)
+      .post('/api/contact')
+      .send(await withChallenge(app, { name: '', email: 'nope', subject: '', message: 'x' }));
     assert.equal(res.status, 400);
     assert.equal(store.messages.length, 0);
     assert.ok(Array.isArray(res.body.error.details));
@@ -456,7 +463,7 @@ describe('site settings, inbox and backup', () => {
     const { app } = await boot();
     const token = await tokenFor(app);
     const auth = { Authorization: `Bearer ${token}` };
-    await request(app).post('/api/contact').send({ name: 'a', email: 'a@b.co', subject: 's', message: 'm' });
+    await request(app).post('/api/contact').send(await withChallenge(app, { name: 'a', email: 'a@b.co', subject: 's', message: 'm' }));
 
     const list = await request(app).get('/api/admin/messages').set(auth);
     assert.equal(list.body.length, 1);
@@ -551,7 +558,7 @@ describe('site settings, inbox and backup', () => {
     await request(app).post('/api/admin/comics').set(auth).send({
       title_fa: 'زائد', title_en: 'junk', publisher: 'Marvel', year: 2021
     });
-    await request(app).post('/api/contact').send({ name: 'a', email: 'a@b.co', subject: 's', message: 'm' });
+    await request(app).post('/api/contact').send(await withChallenge(app, { name: 'a', email: 'a@b.co', subject: 's', message: 'm' }));
 
     const reset = await request(app).post('/api/admin/reset').set(auth);
     assert.equal(reset.status, 200);

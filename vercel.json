@@ -25,6 +25,22 @@
       "destination": "/admin.html"
     },
     {
+      "source": "/comics/:slug",
+      "destination": "/item.html"
+    },
+    {
+      "source": "/articles/:slug",
+      "destination": "/item.html"
+    },
+    {
+      "source": "/movies/:slug",
+      "destination": "/item.html"
+    },
+    {
+      "source": "/characters/:slug",
+      "destination": "/item.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/api/index"
     }

@@ -14,7 +14,20 @@ export async function verifyPassword(password, hash) {
 
 export function signToken(admin, { secret, ttl }) {
   return jwt.sign(
-    { sub: admin.id, username: admin.username, tv: admin.token_version },
+    { sub: admin.id, kind: 'admin', username: admin.username, tv: admin.token_version },
+    secret,
+    { expiresIn: ttl, algorithm: 'HS256' }
+  );
+}
+
+/**
+ * Reader tokens are a different kind of credential, and the `kind` claim is what
+ * keeps them apart: an admin route refuses anything that is not an admin token,
+ * so a signed-up reader cannot walk into the panel with the same secret.
+ */
+export function signMemberToken(member, { secret, ttl }) {
+  return jwt.sign(
+    { sub: member.id, kind: 'member', username: member.username, tv: member.token_version },
     secret,
     { expiresIn: ttl, algorithm: 'HS256' }
   );

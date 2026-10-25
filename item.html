@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DEADVERSE</title>
+  <meta name="description" content="DEADVERSE — دنیای ابرقهرمانان" />
+  <meta name="theme-color" content="#050508" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="DEADVERSE" />
+  <meta property="og:title" content="DEADVERSE" />
+  <meta property="og:image" content="https://deadverse.vercel.app/og-cover.jpg" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Vazirmatn:wght@300;400;600;700;900&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Vazirmatn', 'Inter', sans-serif;
+      background-color: #050508;
+      color: #e8e8f0;
+      overflow-x: hidden;
+      line-height: 1.9;
+      min-height: 100vh;
+    }
+    body[data-lang="en"] { font-family: 'Inter', 'Vazirmatn', sans-serif; direction: ltr; }
+
+    .bg-canvas {
+      position: fixed; inset: 0; z-index: 0;
+      background: radial-gradient(ellipse at 20% 10%, #1a0a1a 0%, #050508 60%);
+      overflow: hidden; pointer-events: none;
+    }
+    .bg-canvas::before {
+      content: ''; position: absolute; inset: -50%;
+      background:
+        radial-gradient(circle at 30% 40%, rgba(200, 30, 50, 0.18) 0%, transparent 45%),
+        radial-gradient(circle at 75% 60%, rgba(30, 60, 200, 0.15) 0%, transparent 45%),
+        radial-gradient(circle at 50% 80%, rgba(120, 0, 180, 0.10) 0%, transparent 50%);
+      animation: bgDrift 20s ease-in-out infinite alternate;
+    }
+    .bg-canvas::after {
+      content: ''; position: absolute; inset: 0;
+      background-image:
+        radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.5) 0%, transparent 100%),
+        radial-gradient(1px 1px at 40% 70%, rgba(255,255,255,0.35) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 80% 30%, rgba(255,255,255,0.45) 0%, transparent 100%),
+        radial-gradient(1px 1px at 65% 85%, rgba(255,255,255,0.3) 0%, transparent 100%);
+      background-size: 200px 200px, 300px 300px, 250px 250px, 180px 180px;
+      animation: starTwinkle 8s ease-in-out infinite alternate;
+    }
+    @keyframes bgDrift { 0% { transform: translate(0, 0) rotate(0deg); } 100% { transform: translate(2%, -1%) rotate(1deg); } }
+    @keyframes starTwinkle { 0% { opacity: 0.6; } 100% { opacity: 1; } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .container { width: 100%; max-width: 900px; margin: 0 auto; padding: 0 20px; position: relative; z-index: 1; }
+
+    header.item-header {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(5, 5, 8, 0.82);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .header-inner {
+      max-width: 1100px; margin: 0 auto; padding: 14px 20px;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .logo {
+      font-family: 'Bebas Neue', 'Vazirmatn', sans-serif;
+      font-size: 1.5rem; letter-spacing: 3px; color: #fff; text-decoration: none;
+    }
+    .logo span { color: #e63946; }
+    .header-actions { margin-inline-start: auto; display: flex; align-items: center; gap: 10px; }
+    .icon-btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 8px 16px; border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.04); color: #ccc;
+      font-size: 0.78rem; font-weight: 600; cursor: pointer;
+      transition: all 0.3s ease; font-family: inherit; white-space: nowrap;
+      text-decoration: none;
+    }
+    .icon-btn:hover { border-color: #e63946; color: #fff; background: rgba(230, 57, 70, 0.12); box-shadow: 0 0 18px rgba(230, 57, 70, 0.25); }
+    .icon-btn.primary {
+      background: linear-gradient(135deg, #e63946, #c1121f);
+      border-color: transparent; color: #fff;
+    }
+    .icon-btn.primary:hover { transform: translateY(-2px); box-shadow: 0 8px 26px rgba(230, 57, 70, 0.5); }
+
+    .item-shell { position: relative; z-index: 1; padding: 34px 0 70px; }
+
+    .state-box {
+      text-align: center; padding: 70px 20px;
+      animation: fadeUp 0.7s ease both;
+    }
+    .state-box h2 { font-size: 1.4rem; margin-bottom: 10px; font-weight: 700; }
+    .state-box p { color: #999; font-size: 0.9rem; margin-bottom: 24px; }
+    .spinner {
+      width: 42px; height: 42px; margin: 0 auto 22px;
+      border: 3px solid rgba(230, 57, 70, 0.2); border-top-color: #e63946;
+      border-radius: 50%; animation: spin 0.9s linear infinite;
+    }
+
+    .hero {
+      position: relative; border-radius: 22px; overflow: hidden;
+      min-height: 300px; display: flex; align-items: flex-end;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+      animation: fadeUp 0.8s ease both;
+    }
+    .hero img {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; z-index: 0;
+    }
+    .hero::after {
+      content: ''; position: absolute; inset: 0; z-index: 1;
+      background: linear-gradient(180deg, rgba(5, 5, 8, 0.15) 0%, rgba(5, 5, 8, 0.72) 55%, rgba(5, 5, 8, 0.96) 100%);
+    }
+    .hero-fallback {
+      position: absolute; inset: 0; z-index: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Bebas Neue', sans-serif; font-size: 5rem; letter-spacing: 8px;
+      color: rgba(255, 255, 255, 0.12);
+      background: linear-gradient(135deg, #14091a, #090912 60%, #1a0a12);
+    }
+    .hero-body { position: relative; z-index: 2; padding: 30px 28px; width: 100%; }
+    .hero-kicker {
+      display: inline-block; font-size: 0.72rem; font-weight: 700; letter-spacing: 1.5px;
+      color: #e63946; text-transform: uppercase; margin-bottom: 10px;
+    }
+    .hero h1 {
+      font-size: clamp(1.6rem, 4.6vw, 2.7rem); font-weight: 900; line-height: 1.35;
+      text-shadow: 0 4px 24px rgba(0, 0, 0, 0.7);
+    }
+    body[data-lang="en"] .hero h1 { font-family: 'Bebas Neue', sans-serif; letter-spacing: 1.5px; }
+    .meta-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+    .chip {
+      padding: 4px 12px; border-radius: 30px; font-size: 0.74rem; font-weight: 600;
+      background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.12); color: #cfd2e8;
+    }
+    .chip.marvel { background: rgba(230, 57, 70, 0.18); border-color: rgba(230, 57, 70, 0.45); color: #ff98a4; }
+    .chip.dc { background: rgba(58, 134, 255, 0.18); border-color: rgba(58, 134, 255, 0.45); color: #9dc4ff; }
+    .chip.rating { color: #ffd166; border-color: rgba(255, 209, 102, 0.35); }
+
+    .lede {
+      font-size: 1.05rem; color: #c9c9d6; margin: 30px 0 6px;
+      padding-inline-start: 16px; border-inline-start: 3px solid #e63946;
+      animation: fadeUp 0.8s ease 0.1s both;
+    }
+
+    .body-text { margin-top: 26px; animation: fadeUp 0.8s ease 0.18s both; }
+    .body-text p { margin-bottom: 20px; font-size: 1rem; color: #d6d6e2; }
+    .body-text p:first-child::first-letter {
+      font-size: 2.4rem; font-weight: 900; color: #e63946; line-height: 1;
+    }
+    .body-text img {
+      width: 100%; border-radius: 16px; margin: 8px 0 24px; display: block;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: transform 0.5s ease;
+    }
+    .body-text img:hover { transform: scale(1.01); }
+
+    .cta-row { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 34px; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 13px 30px; border-radius: 40px; border: none; cursor: pointer;
+      font-family: inherit; font-weight: 600; font-size: 0.9rem; text-decoration: none;
+      transition: all 0.3s ease;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #e63946, #c1121f); color: #fff;
+      box-shadow: 0 4px 20px rgba(230, 57, 70, 0.35);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(230, 57, 70, 0.55); }
+    .btn-outline { background: transparent; color: #e8e8f0; border: 1px solid rgba(255, 255, 255, 0.25); }
+    .btn-outline:hover { border-color: #e63946; color: #e63946; box-shadow: 0 0 20px rgba(230, 57, 70, 0.2); }
+
+    .section-line {
+      margin: 48px 0 22px; padding-top: 26px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 1.05rem; font-weight: 700; color: #fff;
+    }
+
+    .gate-card {
+      max-width: 520px; margin: 60px auto; padding: 38px 30px; text-align: center;
+      border-radius: 20px; background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(230, 57, 70, 0.28);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      animation: fadeUp 0.7s ease both;
+    }
+    .gate-lock {
+      width: 62px; height: 62px; margin: 0 auto 18px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; font-size: 1.6rem;
+      background: rgba(230, 57, 70, 0.14); border: 1px solid rgba(230, 57, 70, 0.4);
+      animation: floaty 3.5s ease-in-out infinite;
+    }
+    @keyframes floaty { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+    .gate-card h2 { font-size: 1.3rem; margin-bottom: 12px; font-weight: 800; }
+    .gate-card p { color: #a6a6b8; font-size: 0.9rem; margin-bottom: 24px; }
+
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 18px; }
+    .related-card {
+      display: block; border-radius: 16px; overflow: hidden; text-decoration: none; color: inherit;
+      background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: transform 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+    }
+    .related-card:hover {
+      transform: translateY(-5px); border-color: rgba(230, 57, 70, 0.5);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+    }
+    .related-img { position: relative; aspect-ratio: 3 / 4; overflow: hidden; background: #12121c; }
+    .related-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
+    .related-card:hover .related-img img { transform: scale(1.07); }
+    .related-img .ph {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      font-family: 'Bebas Neue', sans-serif; font-size: 2rem; color: rgba(255, 255, 255, 0.18);
+    }
+    .related-body { padding: 14px 16px 18px; }
+    .related-body h3 { font-size: 0.92rem; font-weight: 700; line-height: 1.5; }
+    .related-body span { font-size: 0.74rem; color: #8b8b9e; }
+
+    .share-row { display: flex; align-items: center; gap: 12px; margin-top: 40px; flex-wrap: wrap; }
+    .share-toast {
+      font-size: 0.8rem; color: #2ed573; opacity: 0; transform: translateY(6px);
+      transition: all 0.35s ease;
+    }
+    .share-toast.show { opacity: 1; transform: translateY(0); }
+
+    footer.item-footer {
+      position: relative; z-index: 1; padding: 26px 20px 40px; text-align: center;
+      border-top: 1px solid rgba(255, 255, 255, 0.06); color: #7c7c8c; font-size: 0.8rem;
+    }
+    footer.item-footer a { color: #e63946; text-decoration: none; }
+
+    @media (max-width: 640px) {
+      .hero { min-height: 240px; }
+      .hero-body { padding: 22px 18px; }
+      .header-inner { padding: 12px 14px; }
+      .icon-btn .label { display: none; }
+      .body-text p { font-size: 0.95rem; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body data-lang="fa" dir="rtl">
+  <div class="bg-canvas"></div>
+
+  <header class="item-header">
+    <div class="header-inner">
+      <a class="logo" href="/?lang=fa">DEAD<span>VERSE</span></a>
+      <div class="header-actions">
+        <a class="icon-btn" id="homeLink" href="/#comics">← <span class="label" data-i18n="back_home">فهرست</span></a>
+        <button class="icon-btn" id="langToggle" type="button">🌐 <span class="label" id="langLabel">EN</span></button>
+        <button class="icon-btn" id="chipBtn" type="button" hidden>👤 <span class="label" id="chipName"></span></button>
+      </div>
+    </div>
+  </header>
+
+  <main class="item-shell">
+    <div class="container" id="root">
+      <div class="state-box">
+        <div class="spinner"></div>
+        <p>در حال بارگذاری…</p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="item-footer">
+    <span data-i18n="footer_copy">© ۲۰۲۶ DEADVERSE — سایتی طرفداری برای دنیای مارول و دی‌سی.</span>
+  </footer>
+
+  <script src="/config.js"></script>
+  <script>
+    const STRINGS = {
+      fa: {
+        back_home: 'فهرست', lang_switch: 'EN', footer_copy: '© ۲۰۲۶ DEADVERSE — سایتی طرفداری برای دنیای مارول و دی‌سی.',
+        loading: 'در حال بارگذاری…',
+        missing_title: 'صفحه پیدا نشد',
+        missing_text: 'این صفحه وجود ندارد یا حذف شده است.',
+        offline_title: 'اتصال به سرور برقرار نشد',
+        offline_text: 'چند لحظه دیگر دوباره امتحان کنید.',
+        try_again: 'تلاش دوباره',
+        gate_title: 'این صفحه برای عضوها است',
+        gate_text: 'برای خواندن این مقاله وارد حساب خود شوید یا یک حساب رایگان بسازید.',
+        gate_cta: 'ورود / عضویت',
+        members_chip: 'حساب من',
+        watch: 'لینک مشاهده فیلم',
+        read_more: 'ادامه‌ی مطلب',
+        review: 'نقد',
+        profile: 'پروفایل',
+        related_comic: 'کمیک‌های بیشتر',
+        related_article: 'مقالات بیشتر',
+        related_movie: 'فیلم‌های بیشتر',
+        related_character: 'شخصیت‌های بیشتر',
+        share: 'کپی لینک صفحه',
+        shared: 'لینک کپی شد',
+        no_body: 'برای این صفحه هنوز متنی نوشته نشده است.',
+        year: 'سال', rating: 'امتیاز', universe: 'دنیا', publisher: 'ناشر', kind: 'نوع', date: 'تاریخ',
+        comic_readmore: 'بیشتر بخوانید'
+      },
+      en: {
+        back_home: 'Index', lang_switch: 'FA', footer_copy: '© 2026 DEADVERSE — a fan site for the Marvel and DC universes.',
+        loading: 'Loading…',
+        missing_title: 'Page not found',
+        missing_text: 'This page does not exist or has been removed.',
+        offline_title: 'The server could not be reached',
+        offline_text: 'Please try again in a moment.',
+        try_again: 'Try again',
+        gate_title: 'This page is for members',
+        gate_text: 'Sign in to read this article, or create a free account.',
+        gate_cta: 'Log in / Sign up',
+        members_chip: 'My account',
+        watch: 'Watch the film',
+        read_more: 'Continue reading',
+        review: 'Review',
+        profile: 'Profile',
+        related_comic: 'More comics',
+        related_article: 'More articles',
+        related_movie: 'More movies',
+        related_character: 'More characters',
+        share: 'Copy page link',
+        shared: 'Link copied',
+        no_body: 'This page has no text yet.',
+        year: 'Year', rating: 'Rating', universe: 'Universe', publisher: 'Publisher', kind: 'Type', date: 'Date',
+        comic_readmore: 'Read More'
+      }
+    };
+
+    const SECTIONS = { comics: 'comic', articles: 'article', movies: 'movie', characters: 'character' };
+    const ANCHOR = { comic: 'comics', article: 'articles', movie: 'movies', character: 'characters' };
+
+    let lang = new URLSearchParams(window.location.search).get('lang') === 'en' ? 'en' : 'fa';
+
+    function t() { return STRINGS[lang]; }
+
+    function esc(value) {
+      if (value === undefined || value === null) return '';
+      return String(value)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function pick(fa, en) { return lang === 'fa' ? (fa || en || '') : (en || fa || ''); }
+
+    /** The path this page was served from, which is also the API path. */
+    function currentRef() {
+      const parts = window.location.pathname.split('/').filter(Boolean);
+      const segment = parts[0] === 'item.html' ? 'comics' : parts[0];
+      const slug = decodeURIComponent(parts[1] || '');
+      return { segment, type: SECTIONS[segment] || 'comic', slug: slug || segment.replace(/\.(html?|php)$/i, '') };
+    }
+
+    let ref = currentRef();
+    const root = document.getElementById('root');
+
+    function stateBox(kind, title, text, actionLabel) {
+      root.innerHTML = `
+        <div class="state-box">
+          <h2>${esc(title)}</h2>
+          <p>${esc(text)}</p>
+          <a class="btn btn-outline" href="/#${esc(ANCHOR[ref.type] || 'comics')}">${esc(t().back_home)}</a>
+          ${actionLabel ? `<button class="btn btn-primary" type="button" id="stateAction">${esc(actionLabel)}</button>` : ''}
+        </div>
+      `;
+      if (kind === 'offline') document.getElementById('stateAction').addEventListener('click', load);
+    }
+
+    function titleOf(item) {
+      if (ref.type === 'comic' || ref.type === 'article') return pick(item.title_fa, item.title_en);
+      return pick(item.name_fa, item.name_en);
+    }
+
+    function imageOf(item) {
+      if (ref.type === 'article') return item.coverImage || item.midImage || item.lateImage;
+      return item.image;
+    }
+
+    function chips(item) {
+      const rows = [];
+      const brand = item.publisher || item.universe || item.cat;
+      if (brand) {
+        const cls = brand === 'Marvel' || brand === 'marvel' ? 'marvel' : brand === 'DC' || brand === 'dc' ? 'dc' : '';
+        rows.push(`<span class="chip ${cls}">${esc(brand)}</span>`);
+      }
+      if (item.year) rows.push(`<span class="chip">${esc(t().year)}: ${esc(item.year)}</span>`);
+      if (item.rating) rows.push(`<span class="chip rating">★ ${esc(item.rating)}</span>`);
+      if (item.type) rows.push(`<span class="chip">${esc(item.type)}</span>`);
+      if (item.date_fa || item.date_en) rows.push(`<span class="chip">${esc(pick(item.date_fa, item.date_en))}</span>`);
+      return rows.join('');
+    }
+
+    /** Paragraph breaks from the text the admin typed — two newlines split, one breaks. */
+    function bodyHtml(text) {
+      if (!text) return `<p style="color:#8b8b9e">${esc(t().no_body)}</p>`;
+      return String(text).trim().split(/\n{2,}/).map((block) => {
+        const safe = esc(block).replace(/\n/g, '<br>');
+        return `<p>${safe}</p>`;
+      }).join('');
+    }
+
+    function heroHtml(item) {
+      const title = titleOf(item);
+      const src = window.DEADVERSE.mediaSrc(imageOf(item));
+      const picture = src
+        ? `<img src="${esc(src)}" alt="${esc(title)}">`
+        : `<div class="hero-fallback">${esc((title || 'DEADVERSE').slice(0, 12))}</div>`;
+      const kicker = { comic: 'COMIC', article: 'ARTICLE', movie: 'MOVIE', character: 'CHARACTER' }[ref.type];
+      return `
+        <section class="hero">
+          ${picture}
+          <div class="hero-body">
+            <span class="hero-kicker">${kicker}</span>
+            <h1>${esc(title)}</h1>
+            <div class="meta-row">${chips(item)}</div>
+          </div>
+        </section>
+        ${pick(item.desc_fa, item.desc_en) ? `<p class="lede">${esc(pick(item.desc_fa, item.desc_en))}</p>` : ''}
+        ${ref.type === 'article' && imageOf(item) ? midImages(item) : ''}
+        <div class="body-text">${bodyHtml(pick(item.body_fa, item.body_en) || item.body_fa || item.body_en)}</div>
+        ${item.watchUrl ? `
+          <div class="cta-row">
+            <a class="btn btn-primary" href="${esc(item.watchUrl)}" target="_blank" rel="noopener noreferrer">▶ ${esc(t().watch)}</a>
+          </div>` : ''}
+        <div class="share-row">
+          <button class="icon-btn" type="button" id="shareBtn">🔗 <span class="label">${esc(t().share)}</span></button>
+          <span class="share-toast" id="shareToast">${esc(t().shared)}</span>
+        </div>
+      `;
+    }
+
+    function midImages(item) {
+      const extras = [item.midImage, item.lateImage].map(window.DEADVERSE.mediaSrc).filter(Boolean);
+      if (!extras.length) return '';
+      return `<div class="body-text">${extras.map((src) => `<img src="${esc(src)}" alt="">`).join('')}</div>`;
+    }
+
+    function relatedHtml(items) {
+      const list = items.slice(0, 4);
+      if (!list.length) return '';
+      const cards = list.map((item) => {
+        const title = item.title_fa || item.title_en || item.name_fa || item.name_en || '';
+        const name = item.title_fa ? pick(item.title_fa, item.title_en) : pick(item.name_fa, item.name_en);
+        const img = item.coverImage || item.image;
+        const src = window.DEADVERSE.mediaSrc(img);
+        return `
+          <a class="related-card" href="${esc(window.DEADVERSE.pageHref(itemTypeOf(item), { slug: item.slug || item.id }))}">
+            <div class="related-img">${src ? `<img src="${esc(src)}" alt="${esc(name)}" loading="lazy">` : `<span class="ph">${esc(name.charAt(0))}</span>`}</div>
+            <div class="related-body">
+              <h3>${esc(name || title)}</h3>
+              <span>${esc(item.publisher || item.universe || item.cat || '')}</span>
+            </div>
+          </a>
+        `;
+      }).join('');
+      return `<h2 class="section-line">${esc(t()['related_' + ref.type])}</h2><div class="related-grid">${cards}</div>`;
+    }
+
+    const GROUPS = { comic: 'comics', article: 'articles', movie: 'movies', character: 'characters' };
+    function itemTypeOf(item) {
+      if (item.title_fa !== undefined) return item.cat !== undefined ? 'article' : 'comic';
+      return item.watchUrl !== undefined ? 'movie' : 'character';
+    }
+
+    function gateHtml(item) {
+      const next = encodeURIComponent(`${window.location.pathname}${window.location.search}`);
+      return `
+        <section class="hero">
+          <div class="hero-fallback">${esc(titleOf(item || {}) || 'DEADVERSE')}</div>
+          <div class="hero-body">
+            <span class="hero-kicker">ARTICLE</span>
+            <h1>${esc(titleOf(item || {}))}</h1>
+          </div>
+        </section>
+        <div class="gate-card">
+          <div class="gate-lock">🔒</div>
+          <h2>${esc(t().gate_title)}</h2>
+          <p>${esc(t().gate_text)}</p>
+          <a class="btn btn-primary" href="/?signin=1&lang=${lang}&next=${next}">${esc(t().gate_cta)}</a>
+        </div>
+      `;
+    }
+
+    function applyChrome() {
+      document.body.setAttribute('data-lang', lang);
+      document.body.setAttribute('dir', lang === 'fa' ? 'rtl' : 'ltr');
+      document.documentElement.setAttribute('lang', lang);
+      document.getElementById('langLabel').textContent = t().lang_switch;
+      document.querySelectorAll('[data-i18n]').forEach((el) => {
+        const key = el.dataset.i18n;
+        if (t()[key] !== undefined) el.textContent = t()[key];
+      });
+      document.getElementById('homeLink').href = `/?lang=${lang}#${ANCHOR[ref.type] || 'comics'}`;
+      const member = window.DEADVERSE.member();
+      const chip = document.getElementById('chipBtn');
+      chip.hidden = !member;
+      if (member) {
+        document.getElementById('chipName').textContent = member.display_name || member.username || t().members_chip;
+        chip.onclick = () => { window.location.href = `/?lang=${lang}#articles`; };
+      }
+    }
+
+    function setMeta(item) {
+      const title = titleOf(item) || 'DEADVERSE';
+      document.title = `${title} • DEADVERSE`;
+      const description = pick(item.desc_fa, item.desc_en) || title;
+      document.querySelector('meta[name="description"]').setAttribute('content', description);
+      document.querySelector('meta[property="og:title"]').setAttribute('content', title);
+      const image = window.DEADVERSE.mediaSrc(imageOf(item));
+      if (image) document.querySelector('meta[property="og:image"]').setAttribute('content', image);
+      document.querySelector('meta[property="og:type"]').setAttribute('content', ref.type === 'movie' ? 'movie' : 'article');
+    }
+
+    function wireShare() {
+      const button = document.getElementById('shareBtn');
+      if (!button) return;
+      button.addEventListener('click', async () => {
+        const url = window.location.href;
+        try {
+          await navigator.clipboard.writeText(url);
+        } catch (error) {
+          const helper = document.createElement('textarea');
+          helper.value = url;
+          document.body.appendChild(helper);
+          helper.select();
+          document.execCommand('copy');
+          helper.remove();
+        }
+        document.getElementById('shareToast').classList.add('show');
+        setTimeout(() => document.getElementById('shareToast').classList.remove('show'), 2500);
+      });
+    }
+
+    async function load() {
+      ref = currentRef();
+      root.innerHTML = `<div class="state-box"><div class="spinner"></div><p>${esc(t().loading)}</p></div>`;
+      if (!ref.slug || !SECTIONS[ref.segment]) {
+        stateBox('missing', t().missing_title, t().missing_text);
+        return;
+      }
+      let item = null;
+      let blocked = null;
+      try {
+        const response = await window.DEADVERSE.get(`/${ref.segment}/${encodeURIComponent(ref.slug)}`);
+        item = response.data;
+      } catch (error) {
+        blocked = error;
+      }
+
+      if (item) {
+        root.innerHTML = heroHtml(item) + (await relatedSection());
+        setMeta(item);
+        wireShare();
+        return;
+      }
+
+      if (blocked && blocked.status === 401) {
+        // The card title is public, so show the gate with the right name when we can.
+        const card = await cardFromBootstrap();
+        root.innerHTML = gateHtml(card);
+        return;
+      }
+
+      if (blocked && blocked.status === 404) {
+        stateBox('missing', t().missing_title, t().missing_text);
+        return;
+      }
+      stateBox('offline', t().offline_title, t().offline_text, t().try_again);
+    }
+
+    let bootstrapCache;
+    function bootstrapOnce() {
+      if (!bootstrapCache) {
+        bootstrapCache = window.DEADVERSE.get('/bootstrap')
+          .then((r) => r.data || { comics: [], articles: [], movies: [], characters: [] })
+          .catch(() => null);
+      }
+      return bootstrapCache;
+    }
+
+    async function cardFromBootstrap() {
+      const data = await bootstrapOnce();
+      if (!data) return null;
+      return (data[GROUPS[ref.type]] || []).find((row) => row.slug === ref.slug || row.id === ref.slug) || null;
+    }
+
+    async function relatedSection() {
+      const data = await bootstrapOnce();
+      if (!data) return '';
+      const all = data[GROUPS[ref.type]] || [];
+      const current = all.find((row) => row.slug === ref.slug || row.id === ref.slug);
+      const brand = current && (current.publisher || current.universe || current.cat);
+      const sameBrand = all.filter((row) => row !== current && (!brand || (row.publisher || row.universe || row.cat) === brand));
+      const rest = all.filter((row) => row !== current && !sameBrand.includes(row));
+      return relatedHtml([...sameBrand, ...rest]);
+    }
+
+    document.getElementById('langToggle').addEventListener('click', () => {
+      lang = lang === 'fa' ? 'en' : 'fa';
+      applyChrome();
+      load();
+    });
+
+    applyChrome();
+    load();
+  </script>
+</body>
+</html>

@@ -40,9 +40,11 @@
     });
   }
 
-  function authHeaders(extra) {
+  function authHeaders(path, extra) {
     var headers = Object.assign({}, extra || {});
-    var token = window.DEADVERSE.token();
+    // Two kinds of credential, never mixed: the panel's admin token lives in this
+    // tab only, a reader's token survives restarts because it only unlocks articles.
+    var token = /^\/admin(\/|$)/.test(path) ? window.DEADVERSE.token() : window.DEADVERSE.memberToken();
     if (token) headers['Authorization'] = 'Bearer ' + token;
     return headers;
   }
@@ -65,7 +67,7 @@
     },
     request: function (path, options) {
       var opts = options || {};
-      var headers = authHeaders(opts.headers);
+      var headers = authHeaders(path, opts.headers);
       if (opts.body !== undefined && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
 
       return fetch(window.DEADVERSE.apiBase + path, {
@@ -79,7 +81,7 @@
     postMedia: function (blob) {
       return fetch(window.DEADVERSE.apiBase + '/admin/media', {
         method: 'POST',
-        headers: authHeaders({ 'Content-Type': blob.type || 'application/octet-stream' }),
+        headers: authHeaders('/admin/media', { 'Content-Type': blob.type || 'application/octet-stream' }),
         body: blob
       }).then(toResult);
     },
@@ -108,6 +110,45 @@
       } catch (error) {
         /* private mode: the panel simply asks again next time */
       }
+    },
+    /**
+     * Reader session. Deliberately in localStorage: a fan who signs up to read
+     * articles should still be signed in tomorrow, and this token can open
+     * nothing but the gated pages. `dv_member` is only the name the header shows —
+     * the API never trusts it.
+     */
+    memberToken: function () {
+      try {
+        return window.localStorage.getItem('dv_member_token') || '';
+      } catch (error) {
+        return '';
+      }
+    },
+    member: function () {
+      try {
+        return JSON.parse(window.localStorage.getItem('dv_member') || 'null');
+      } catch (error) {
+        return null;
+      }
+    },
+    setMember: function (token, profile) {
+      try {
+        if (token) {
+          window.localStorage.setItem('dv_member_token', token);
+          window.localStorage.setItem('dv_member', JSON.stringify(profile || null));
+        } else {
+          window.localStorage.removeItem('dv_member_token');
+          window.localStorage.removeItem('dv_member');
+        }
+      } catch (error) {
+        /* private mode: the gated pages simply ask to sign in again */
+      }
+    },
+    /** The address of one record's own page, shared by every listing. */
+    pageHref: function (type, item) {
+      var segment = { comic: 'comics', article: 'articles', movie: 'movies', character: 'characters' }[type];
+      if (!segment || !item) return '';
+      return '/' + segment + '/' + encodeURIComponent(item.slug || item.id || '');
     },
     /** Field-level messages, ready to show under the form. */
     fieldErrors: function (error) {

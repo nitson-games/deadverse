@@ -21,6 +21,9 @@ function baseEnv(overrides = {}) {
     databaseUrl: 'postgres://fake',
     jwtSecret: 'test-secret-value-that-is-long-enough',
     tokenTtl: '1h',
+    memberTokenTtl: '1h',
+    turnstile: { siteKey: '', secret: '' },
+    contactCooldownMinutes: 0,
     allowedOrigins: [],
     bootstrapAdmin: { username: 'admin', password: '' },
     nodeEnv: 'test',
@@ -29,11 +32,18 @@ function baseEnv(overrides = {}) {
 }
 
 const noLimiter = {
-  login: (req, res, next) => next(),
-  contact: (req, res, next) => next(),
-  newsletter: (req, res, next) => next(),
-  upload: (req, res, next) => next()
+  login: passThrough,
+  memberLogin: passThrough,
+  signup: passThrough,
+  challenge: passThrough,
+  contact: passThrough,
+  newsletter: passThrough,
+  upload: passThrough
 };
+
+function passThrough(req, res, next) {
+  next();
+}
 
 export async function boot({ env = {}, admins = [{ username: 'admin', password: PASSWORD }], pagesRoot = null } = {}) {
   const store = createStore();
@@ -64,5 +74,34 @@ export async function boot({ env = {}, admins = [{ username: 'admin', password: 
 
 export async function tokenFor(app, username = 'admin', password = PASSWORD) {
   const res = await request(app).post('/api/admin/login').send({ username, password });
+  return res.body.token;
+}
+
+const PERSIAN_DIGITS = { '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9' };
+
+/** Reads the maths question back the way a person would, so the tests exercise
+    the real signed challenge instead of a stubbed gate. */
+export function solveQuestion(question) {
+  const ascii = String(question).replace(/[۰-۹]/g, (d) => PERSIAN_DIGITS[d]);
+  const match = ascii.match(/(\d+)\s*([+×])\s*(\d+)/);
+  if (!match) throw new Error(`challenge question not understood: ${question}`);
+  const [a, op, b] = [Number(match[1]), match[2], Number(match[3])];
+  return String(op === '×' ? a * b : a + b);
+}
+
+/** A body carrying a fresh, correctly answered challenge for this client IP. */
+export async function withChallenge(app, body = {}) {
+  const res = await request(app).get('/api/challenge');
+  if (res.status !== 200) throw new Error(`challenge endpoint answered ${res.status}`);
+  return { ...body, challenge: res.body.token, answer: solveQuestion(res.body.question) };
+}
+
+export const MEMBER_PASSWORD = 'Reader-Pass-1234';
+
+export async function memberTokenFor(app, username = 'reader.one', password = MEMBER_PASSWORD) {
+  const res = await request(app)
+    .post('/api/member/signup')
+    .send(await withChallenge(app, { username, password, display_name: 'First Reader' }));
+  if (res.status !== 201) throw new Error(`member signup answered ${res.status}: ${JSON.stringify(res.body)}`);
   return res.body.token;
 }
