@@ -526,6 +526,50 @@ async function main() {
       assert.equal((await call(`/articles/${res.body.slug}`, { token: memberToken })).status, 404);
     });
 
+    await check('تصویرها هر جای متن مقاله می‌توانند بنشینند و بایت‌هایشان همان‌جا آزاد می‌شود', async () => {
+      const first = await uploadMedia(PNG_PIXEL, { token });
+      assert.equal(first.status, 201, JSON.stringify(first.body));
+      const second = await uploadMedia(PNG_PIXEL, { token });
+      assert.equal(second.status, 201, JSON.stringify(second.body));
+      const uncached = (mediaId) => fetch(api(`/media/${mediaId}?check=${Date.now()}`));
+
+      const body = `پاراگراف یک\n\n[[img:${first.body.url}]]\n\nپاراگراف دو\n\n[[img:${second.body.url}]]`;
+      const created = await call('/admin/articles', {
+        method: 'POST',
+        token,
+        body: {
+          title_fa: 'چیدمان', title_en: 'Verify Layout', cat: 'news',
+          date_fa: 'آبان ۱۴۰۴', date_en: 'Oct 2026', desc_fa: 'الف', desc_en: 'b',
+          coverImage: 'https://example.com/i/cover.jpg', body_fa: body
+        }
+      });
+      assert.equal(created.status, 201, JSON.stringify(created.body));
+
+      const read = await call(`/articles/${created.body.slug}`, { token: memberToken });
+      assert.equal(read.status, 200, JSON.stringify(read.body));
+      assert.equal(read.body.body_fa, body, 'علامت‌های تصویر داخل متن دگرگون شدند');
+
+      const trimmed = await call(`/admin/articles/${created.body.id}`, {
+        method: 'PUT',
+        token,
+        body: { ...created.body, body_fa: `پاراگراف یک\n\n[[img:${first.body.url}]]` }
+      });
+      assert.equal(trimmed.status, 200, JSON.stringify(trimmed.body));
+      assert.equal((await uncached(second.body.id)).status, 404, 'بایت تصویری که از متن رفت پاک نشد');
+      assert.equal((await uncached(first.body.id)).status, 200, 'تصویری که هنوز در متن است پاک شد');
+
+      const smuggled = await call('/admin/articles', {
+        method: 'POST',
+        token,
+        body: { ...created.body, title_en: 'Verify Bad Layout', body_fa: 'متن\n\n[[img:javascript:alert(1)]]' }
+      });
+      assert.equal(smuggled.status, 400, 'علامت تصویری که بارگذاری نمی‌شود رد نشد!');
+      assert.ok((smuggled.body.error.details || []).some((d) => d.field === 'body_fa'), 'خطا باید نام فیلد متن را ببرد');
+
+      await call(`/admin/articles/${created.body.id}`, { method: 'DELETE', token });
+      assert.equal((await uncached(first.body.id)).status, 404, 'حذف مقاله باید بایت‌های متنش را هم آزاد کند');
+    });
+
     await check('لینک مشاهده‌ی فیلم ذخیره و روی صفحه‌ی فیلم می‌آید', async () => {
       const created = await call('/admin/movies', {
         method: 'POST',
@@ -549,6 +593,41 @@ async function main() {
       assert.ok((bad.body.error.details || []).some((d) => d.field === 'watchUrl'), 'خطا باید نام فیلد لینک را ببرد');
 
       assert.equal((await call(`/admin/movies/${created.body.id}`, { method: 'DELETE', token })).status, 200);
+    });
+
+    await check('لینک دانلود کمیک ذخیره و روی صفحه‌ی کمیک می‌آید', async () => {
+      const created = await call('/admin/comics', {
+        method: 'POST',
+        token,
+        body: {
+          title_fa: 'تست دانلود', title_en: 'Verify Download', publisher: 'Marvel', year: 2026,
+          desc_fa: 'الف', desc_en: 'b', downloadUrl: 'https://example.com/comic/verify'
+        }
+      });
+      assert.equal(created.status, 201, JSON.stringify(created.body));
+      assert.equal(created.body.downloadUrl, 'https://example.com/comic/verify');
+
+      const page = await call(`/comics/${created.body.slug}`);
+      assert.equal(page.status, 200);
+      assert.equal(page.body.downloadUrl, 'https://example.com/comic/verify', 'لینک دانلود در صفحه‌ی کمیک نیست');
+
+      const cleared = await call(`/admin/comics/${created.body.id}`, {
+        method: 'PUT',
+        token,
+        body: { ...created.body, downloadUrl: '' }
+      });
+      assert.equal(cleared.status, 200, JSON.stringify(cleared.body));
+      assert.equal(cleared.body.downloadUrl, '', 'کمیک نباید بدون لینک اصرار داشته باشد');
+
+      const bad = await call('/admin/comics', {
+        method: 'POST',
+        token,
+        body: { title_fa: 'بد', title_en: 'Bad Download', publisher: 'Marvel', year: 2026, downloadUrl: 'javascript:alert(1)' }
+      });
+      assert.equal(bad.status, 400, 'لینک جاوااسکریپتی رد نشد!');
+      assert.ok((bad.body.error.details || []).some((d) => d.field === 'downloadUrl'), 'خطا باید نام فیلد لینک را ببرد');
+
+      assert.equal((await call(`/admin/comics/${created.body.id}`, { method: 'DELETE', token })).status, 200);
     });
 
     /** Only the read/patch/delete half of the member panel is exercised here:

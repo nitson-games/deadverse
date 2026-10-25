@@ -156,6 +156,88 @@
         if (issue && issue.field) map[issue.field] = issue.message;
       });
       return map;
-    }
+    },
+    /**
+     * Article bodies as an ordered list of blocks — paragraphs and pictures —
+     * which is how the panel lays an article out and how the page renders it.
+     * The stored form stays plain text, one picture per line as [[img:<url>]],
+     * so an article written before this existed reads as a single paragraph
+     * block and needs no migration.
+     *
+     * This mirrors server/blocks.js; tests/blocks.test.js feeds both the same
+     * corpus, because a difference between them would show up as the panel and
+     * the page disagreeing about where a picture goes.
+     */
+    blocks: (function () {
+      var IMAGE_LINE = /^\[\[img:([^\]\s]+)\]\]$/;
+      var ESCAPED_LINE = /^\\\[\[img:/;
+
+      function isImageSrc(value) {
+        if (typeof value !== 'string') return false;
+        if (/^https:\/\/[^\s<>"'`]+$/i.test(value)) return true;
+        return /^\/api\/media\/md_[0-9a-z]+$/.test(value);
+      }
+
+      function unescapeLine(line) {
+        return ESCAPED_LINE.test(line) ? line.slice(1) : line;
+      }
+
+      function escapeLine(line) {
+        return IMAGE_LINE.test(line) ? '\\' + line : line;
+      }
+
+      function parse(text) {
+        var blocks = [];
+        String(text || '').trim().split(/\n{2,}/).forEach(function (chunk) {
+          if (!chunk.trim()) return;
+          var match = IMAGE_LINE.exec(chunk.trim());
+          if (match && isImageSrc(match[1])) blocks.push({ kind: 'image', url: match[1] });
+          else blocks.push({ kind: 'text', text: chunk.split('\n').map(unescapeLine).join('\n') });
+        });
+        return blocks;
+      }
+
+      function serialize(blocks) {
+        return (blocks || [])
+          .map(function (block) {
+            if (block.kind === 'image') return isImageSrc(block.url) ? '[[img:' + block.url + ']]' : '';
+            return String(block.text || '')
+              .trim()
+              .split('\n')
+              .map(escapeLine)
+              .join('\n');
+          })
+          .filter(function (chunk) { return chunk !== ''; })
+          .join('\n\n');
+      }
+
+      function images(text) {
+        return parse(text)
+          .filter(function (block) { return block.kind === 'image'; })
+          .map(function (block) { return block.url; });
+      }
+
+      /** A marker line the admin typed by hand that is not a loadable address. */
+      function badImages(text) {
+        return String(text || '')
+          .split('\n')
+          .map(function (line) { return line.trim(); })
+          .filter(function (line) { return /^\[\[img:/.test(line) && !line.startsWith('\\['); })
+          .filter(function (line) {
+            var match = IMAGE_LINE.exec(line);
+            return !match || !isImageSrc(match[1]);
+          });
+      }
+
+      return {
+        IMAGE_LINE: IMAGE_LINE,
+        isImageSrc: isImageSrc,
+        parse: parse,
+        serialize: serialize,
+        images: images,
+        badImages: badImages,
+        max: 24
+      };
+    })()
   };
 })();

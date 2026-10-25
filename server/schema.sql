@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS comics (
   body_fa         text NOT NULL DEFAULT '',
   body_en         text NOT NULL DEFAULT '',
   slug            text NOT NULL DEFAULT '',
+  download_url    text NOT NULL DEFAULT '',
   image_url       text NOT NULL DEFAULT '',
   image_public_id text NOT NULL DEFAULT '',
   sort_order      integer NOT NULL DEFAULT 0,
@@ -178,6 +179,8 @@ ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS social_discord text NOT NULL 
 ALTER TABLE comics ADD COLUMN IF NOT EXISTS slug text NOT NULL DEFAULT '';
 ALTER TABLE comics ADD COLUMN IF NOT EXISTS body_fa text NOT NULL DEFAULT '';
 ALTER TABLE comics ADD COLUMN IF NOT EXISTS body_en text NOT NULL DEFAULT '';
+-- Where the comic can be read/downloaded; the page shows it as the green button.
+ALTER TABLE comics ADD COLUMN IF NOT EXISTS download_url text NOT NULL DEFAULT '';
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS slug text NOT NULL DEFAULT '';
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS body_fa text NOT NULL DEFAULT '';
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS body_en text NOT NULL DEFAULT '';

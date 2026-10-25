@@ -158,15 +158,37 @@
 
     .body-text { margin-top: 26px; animation: fadeUp 0.8s ease 0.18s both; }
     .body-text p { margin-bottom: 20px; font-size: 1rem; color: #d6d6e2; }
-    .body-text p:first-child::first-letter {
+    /* :first-of-type, not :first-child — a picture placed at the very top of the
+       article must not take the drop cap away from the paragraph after it. */
+    .body-text p:first-of-type::first-letter {
       font-size: 2.4rem; font-weight: 900; color: #e63946; line-height: 1;
     }
-    .body-text img {
+    /* `> img` on purpose: these are the two legacy slot pictures, which are
+       direct children of the text column. The images the layout editor places
+       live inside a `.body-figure`, and must not collect this rule's margin on
+       top of the figure's own — that stacked into a 52px gap under every picture. */
+    .body-text > img {
       width: 100%; border-radius: 16px; margin: 8px 0 24px; display: block;
       border: 1px solid rgba(255, 255, 255, 0.08);
       transition: transform 0.5s ease;
     }
-    .body-text img:hover { transform: scale(1.01); }
+    .body-text > img:hover { transform: scale(1.01); }
+
+    /* A picture the admin parked between two paragraphs. */
+    .body-figure {
+      margin: 4px 0 28px;
+      animation: fadeUp 0.7s ease both;
+    }
+    .body-figure img {
+      width: 100%; height: auto; display: block; border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+      transition: transform 0.5s ease, box-shadow 0.5s ease;
+    }
+    .body-figure:hover img { transform: scale(1.008); box-shadow: 0 22px 54px rgba(0, 0, 0, 0.6); }
+    .body-figure figcaption {
+      margin-top: 8px; font-size: 0.76rem; color: #8b8b9e; text-align: center;
+    }
 
     .cta-row { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 34px; }
     .btn {
@@ -308,6 +330,7 @@
         gate_cta: 'ورود / عضویت',
         members_chip: 'حساب من',
         watch: 'لینک مشاهده فیلم',
+        download: 'لینک دانلود کمیک',
         read_more: 'ادامه‌ی مطلب',
         review: 'نقد',
         profile: 'پروفایل',
@@ -334,6 +357,7 @@
         gate_cta: 'Log in / Sign up',
         members_chip: 'My account',
         watch: 'Watch the film',
+        download: 'Download the comic',
         read_more: 'Continue reading',
         review: 'Review',
         profile: 'Profile',
@@ -412,13 +436,50 @@
       return rows.join('');
     }
 
-    /** Paragraph breaks from the text the admin typed — two newlines split, one breaks. */
+    /**
+     * The body as the panel laid it out: paragraphs, and a picture wherever the
+     * admin parked one. Empty means the page has no text of its own yet.
+     */
     function bodyHtml(text) {
-      if (!text) return `<p style="color:#8b8b9e">${esc(t().no_body)}</p>`;
-      return String(text).trim().split(/\n{2,}/).map((block) => {
-        const safe = esc(block).replace(/\n/g, '<br>');
-        return `<p>${safe}</p>`;
+      if (!text) return '';
+      const blocks = window.DEADVERSE.blocks.parse(text);
+      if (!blocks.length) return '';
+      return blocks.map((block) => {
+        if (block.kind === 'image') {
+          const src = window.DEADVERSE.mediaSrc(block.url);
+          return src ? `<figure class="body-figure"><img src="${esc(src)}" alt="" loading="lazy" /></figure>` : '';
+        }
+        return `<p>${esc(block.text).replace(/\n/g, '<br>')}</p>`;
       }).join('');
+    }
+
+    /**
+     * Articles written before the layout editor used two fixed slots. They still
+     * have to show their pictures — but only while the body carries none of its
+     * own, or an article mid-way through being rewritten would show both.
+     */
+    function legacySlotImages(item) {
+      if (ref.type !== 'article') return '';
+      const placed = window.DEADVERSE.blocks
+        .parse(pick(item.body_fa, item.body_en) || item.body_fa || item.body_en)
+        .some((block) => block.kind === 'image');
+      if (placed) return '';
+      const extras = [item.midImage, item.lateImage].map(window.DEADVERSE.mediaSrc).filter(Boolean);
+      if (!extras.length) return '';
+      return `<div class="body-text">${extras.map((src) => `<img src="${esc(src)}" alt="" loading="lazy">`).join('')}</div>`;
+    }
+
+    function ctaHtml(item) {
+      // Films point at a stream, comics at the file to download — the same green
+      // button, because on the page they answer the same question: where do I read it?
+      const link = ref.type === 'comic' ? item.downloadUrl : item.watchUrl;
+      if (!link) return '';
+      const label = ref.type === 'comic' ? t().download : t().watch;
+      const glyph = ref.type === 'comic' ? '⬇' : '▶';
+      return `
+        <div class="cta-row">
+          <a class="btn btn-primary" href="${esc(link)}" target="_blank" rel="noopener noreferrer">${glyph} ${esc(label)}</a>
+        </div>`;
     }
 
     function heroHtml(item) {
@@ -428,6 +489,12 @@
         ? `<img src="${esc(src)}" alt="${esc(title)}">`
         : `<div class="hero-fallback">${esc((title || 'DEADVERSE').slice(0, 12))}</div>`;
       const kicker = { comic: 'COMIC', article: 'ARTICLE', movie: 'MOVIE', character: 'CHARACTER' }[ref.type];
+      // A comic is its cover plus the blurb; the long-form page belongs to the
+      // other three kinds, which is why the body is not rendered for comics.
+      const body = ref.type === 'comic' ? '' : bodyHtml(pick(item.body_fa, item.body_en) || item.body_fa || item.body_en);
+      const missing = !body && ref.type !== 'comic'
+        ? `<p style="color:#8b8b9e">${esc(t().no_body)}</p>`
+        : '';
       return `
         <section class="hero">
           ${picture}
@@ -438,23 +505,14 @@
           </div>
         </section>
         ${pick(item.desc_fa, item.desc_en) ? `<p class="lede">${esc(pick(item.desc_fa, item.desc_en))}</p>` : ''}
-        ${ref.type === 'article' && imageOf(item) ? midImages(item) : ''}
-        <div class="body-text">${bodyHtml(pick(item.body_fa, item.body_en) || item.body_fa || item.body_en)}</div>
-        ${item.watchUrl ? `
-          <div class="cta-row">
-            <a class="btn btn-primary" href="${esc(item.watchUrl)}" target="_blank" rel="noopener noreferrer">▶ ${esc(t().watch)}</a>
-          </div>` : ''}
+        ${legacySlotImages(item)}
+        ${body || missing ? `<div class="body-text">${body}${missing}</div>` : ''}
+        ${ctaHtml(item)}
         <div class="share-row">
           <button class="icon-btn" type="button" id="shareBtn">🔗 <span class="label">${esc(t().share)}</span></button>
           <span class="share-toast" id="shareToast">${esc(t().shared)}</span>
         </div>
       `;
-    }
-
-    function midImages(item) {
-      const extras = [item.midImage, item.lateImage].map(window.DEADVERSE.mediaSrc).filter(Boolean);
-      if (!extras.length) return '';
-      return `<div class="body-text">${extras.map((src) => `<img src="${esc(src)}" alt="">`).join('')}</div>`;
     }
 
     function relatedHtml(items) {

@@ -452,6 +452,92 @@
     }
     .upload-hint { font-size: 0.7rem; color: var(--text-dim); }
 
+    /* Article layout editor — paragraphs and pictures in any order */
+    .blocks-shell {
+      grid-column: 1 / -1;
+      border: 1px solid var(--border); border-radius: 12px;
+      background: rgba(255, 255, 255, 0.02); overflow: hidden;
+    }
+    .blocks-bar {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      padding: 10px 12px; border-bottom: 1px solid var(--border);
+      background: var(--bg-3);
+    }
+    .blocks-lang, .blocks-mode { display: flex; gap: 6px; }
+    .blocks-mode { margin-inline-start: auto; }
+    .blocks-bar button {
+      padding: 8px 14px; border-radius: 8px; min-height: 34px;
+      border: 1px solid var(--border); background: var(--bg-2);
+      color: var(--text-dim); font-family: inherit; font-size: 0.78rem;
+      font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+    }
+    .blocks-bar button:hover { color: var(--text); border-color: var(--blue); }
+    .blocks-bar button.active {
+      color: #fff; border-color: var(--red); background: rgba(230, 57, 70, 0.16);
+    }
+    .blocks-list { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+    .blocks-empty {
+      padding: 22px 10px; text-align: center; color: var(--text-dim); font-size: 0.8rem;
+      border: 1px dashed var(--border); border-radius: 10px;
+    }
+    .blk {
+      display: flex; gap: 10px; align-items: flex-start; padding: 10px;
+      border: 1px solid var(--border); border-radius: 10px; background: var(--bg-2);
+      transition: border-color 0.2s, box-shadow 0.2s, opacity 0.2s;
+      animation: blkIn 0.25s ease both;
+    }
+    @keyframes blkIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+    .blk:hover { border-color: rgba(230, 57, 70, 0.45); }
+    .blk.dragging { opacity: 0.4; }
+    .blk.drop-before { box-shadow: 0 -3px 0 0 var(--red); }
+    .blk.drop-after { box-shadow: 0 3px 0 0 var(--red); }
+    .blk-grip {
+      cursor: grab; color: var(--text-dim); font-size: 0.95rem;
+      padding: 8px 2px; user-select: none; line-height: 1;
+    }
+    .blk-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+    .blk-main textarea {
+      width: 100%; min-height: 78px; resize: vertical;
+      padding: 10px 12px; border-radius: 9px; border: 1px solid var(--border);
+      background: var(--bg-3); color: var(--text); font-size: 0.86rem; font-family: inherit;
+      line-height: 1.8; outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .blk-main textarea:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(230, 57, 70, 0.1); }
+    .blk-meta { display: flex; align-items: center; gap: 8px; font-size: 0.7rem; color: var(--text-dim); }
+    .blk-meta .linklike {
+      background: none; border: none; padding: 0; cursor: pointer;
+      color: var(--blue); font-family: inherit; font-size: 0.7rem; font-weight: 600;
+    }
+    .blk-meta .linklike:hover { text-decoration: underline; }
+    .blk-tools { display: flex; flex-direction: column; gap: 6px; }
+    .blk-tools button {
+      width: 34px; height: 34px; border-radius: 8px; padding: 0;
+      border: 1px solid var(--border); background: var(--bg-3); color: var(--text-dim);
+      cursor: pointer; font-size: 0.85rem; transition: all 0.2s;
+    }
+    .blk-tools button:hover { color: var(--text); border-color: var(--blue); }
+    .blk-tools button.danger:hover { color: var(--red); border-color: var(--red); }
+    .blk-img { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .blk-img img {
+      width: 128px; height: 82px; object-fit: cover; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--bg-3); flex-shrink: 0;
+    }
+    .blk-img .img-src {
+      flex: 1 1 160px; min-width: 0; direction: ltr; text-align: left;
+      padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--bg-3); color: var(--text); font-size: 0.72rem;
+      font-family: ui-monospace, monospace;
+    }
+    .blocks-hint { padding: 0 12px 12px; font-size: 0.72rem; color: var(--text-dim); }
+    .blocks-raw { padding: 12px; }
+    .blocks-raw textarea {
+      width: 100%; min-height: 280px; resize: vertical;
+      padding: 12px; border-radius: 10px; border: 1px solid var(--border);
+      background: var(--bg-3); color: var(--text);
+      font-family: ui-monospace, monospace; font-size: 0.78rem; line-height: 1.7; outline: none;
+    }
+    .blocks-raw textarea:focus { border-color: var(--red); }
+
     /* Modal */
     .modal-overlay {
       position: fixed; inset: 0; background: rgba(0,0,0,0.7);
@@ -469,6 +555,8 @@
       box-shadow: 0 30px 80px rgba(0,0,0,0.6);
     }
     .modal-overlay.open .modal { transform: scale(1); }
+    /* The layout editor needs room for a paragraph and its picture side by side. */
+    .modal.wide { max-width: 900px; }
     .modal-header {
       padding: 20px 24px; border-bottom: 1px solid var(--border);
       display: flex; align-items: center; justify-content: space-between;
@@ -591,7 +679,15 @@
       /* a focused field under 16px makes iOS zoom the page in and leave it there */
       .login-box input, .search-mini input,
       .form-field input, .form-field select,
-      .form-field textarea { font-size: 1rem; }
+      .form-field textarea,
+      .blk-main textarea, .blocks-raw textarea, .blk-img .img-src { font-size: 1rem; }
+      /* Dragging a block by its grip is a mouse gesture; on a touch screen the
+         arrows do the same job with fingers, so the grip only costs space there. */
+      .blk-grip { display: none; }
+      .blk-tools { flex-direction: row; }
+      .blk-tools button { width: 40px; height: 40px; }
+      .blocks-mode { margin-inline-start: 0; }
+      .blocks-bar button { min-height: 40px; }
     }
     @media (max-width: 480px) {
       .stats-grid { grid-template-columns: 1fr; }
@@ -1626,7 +1722,7 @@
           <td>${imgCell(c.image, c.title_fa)}</td>
           <td><div class="td-title">${esc(c.title_fa)}</div><div style="font-size:0.72rem;color:var(--text-dim);">${esc(c.title_en)}</div>${slugCell(c)}</td>
           <td><span class="tag ${c.publisher === 'Marvel' ? 'tag-marvel' : 'tag-dc'}">${esc(c.publisher)}</span></td>
-          <td>${esc(c.year)}</td>
+          <td>${esc(c.year)}${c.downloadUrl ? '<div class="row-link">⬇ لینک دانلود</div>' : ''}</td>
           <td><div class="actions-cell">
             ${openPageLink('comic', c)}
             <button class="icon-btn" onclick="editItem('comic','${esc(c.id)}')" title="ویرایش">✎</button>
@@ -1645,13 +1741,20 @@
         return;
       }
       tbody.innerHTML = list.map(a => {
-        const imgCount = [a.coverImage, a.midImage, a.lateImage].filter(Boolean).length;
+        // Pictures now live inside the body, in the order they were placed, so
+        // the count reads them from there (the two old slots included).
+        const placed = new Set([
+          ...window.DEADVERSE.blocks.images(a.body_fa),
+          ...window.DEADVERSE.blocks.images(a.body_en)
+        ]);
+        [a.midImage, a.lateImage].filter(Boolean).forEach((url) => placed.add(url));
+        const imgCount = placed.size + (a.coverImage ? 1 : 0);
         return `
         <tr>
           <td>${imgCell(a.coverImage, a.title_fa)}</td>
           <td><div class="td-title">${esc(a.title_fa)}</div><div style="font-size:0.72rem;color:var(--text-dim);">${esc(a.title_en)}</div>${slugCell(a)}</td>
           <td><span class="tag tag-neutral">${esc(catLabels[a.cat] || a.cat)}</span></td>
-          <td><span class="gallery-count">🖼 ${imgCount} / 3</span></td>
+          <td><span class="gallery-count">🖼 ${imgCount}</span></td>
           <td><div class="actions-cell">
             ${openPageLink('article', a)}
             <button class="icon-btn" onclick="editItem('article','${esc(a.id)}')" title="ویرایش">✎</button>
@@ -1885,20 +1988,18 @@
           { key: 'title_en', label: 'عنوان (انگلیسی)', type: 'text', req: true, full: true },
           { key: 'publisher', label: 'ناشر', type: 'select', options: ['Marvel', 'DC'], req: true },
           { key: 'year', label: 'سال انتشار', type: 'number', req: true },
-          { key: 'desc_fa', label: 'توضیحات (فارسی)', type: 'textarea', full: true },
+          { key: 'desc_fa', label: 'توضیحات (فارسی)', type: 'textarea', full: true, hint: 'همان متنی که زیر کاور کمیک نشان داده می‌شود' },
           { key: 'desc_en', label: 'توضیحات (انگلیسی)', type: 'textarea', full: true },
-          { key: 'body_fa', label: 'متن صفحه (فارسی)', type: 'textarea', full: true, rows: 14, hint: 'خط خالی بین پاراگراف‌ها در صفحه حفظ می‌شود' },
-          { key: 'body_en', label: 'متن صفحه (انگلیسی)', type: 'textarea', full: true, rows: 14 },
+          { key: 'downloadUrl', label: 'لینک دانلود کمیک', type: 'url', full: true, hint: 'با https:// شروع شود — دکمه‌ی سبز صفحه‌ی کمیک' },
           { key: 'slug', label: 'آدرس صفحه', type: 'text', full: true, hint: 'خالی بگذارید تا خودکار ساخته شود؛ مثلاً deadpool-war' }
         ]
       },
       article: {
         titleNew: 'افزودن مقاله', titleEdit: 'ویرایش مقاله',
-        imageFields: [
-          { key: 'coverImage', pid: 'coverImagePublicId', label: 'تصویر کاور' },
-          { key: 'midImage', pid: 'midImagePublicId', label: 'تصویر وسط مقاله' },
-          { key: 'lateImage', pid: 'lateImagePublicId', label: 'تصویر کمی بعد از وسط' }
-        ],
+        imageFields: [{ key: 'coverImage', pid: 'coverImagePublicId', label: 'تصویر کاور (بالای صفحه)' }],
+        // The article's own pictures are no longer three fixed slots: they are
+        // blocks placed anywhere in the body, so the editor below owns them.
+        blocks: true,
         fields: [
           { key: 'title_fa', label: 'عنوان (فارسی)', type: 'text', req: true, full: true },
           { key: 'title_en', label: 'عنوان (انگلیسی)', type: 'text', req: true, full: true },
@@ -1907,8 +2008,6 @@
           { key: 'date_en', label: 'تاریخ (English)', type: 'text', req: true },
           { key: 'desc_fa', label: 'توضیحات (فارسی)', type: 'textarea', full: true },
           { key: 'desc_en', label: 'توضیحات (انگلیسی)', type: 'textarea', full: true },
-          { key: 'body_fa', label: 'متن مقاله (فارسی)', type: 'textarea', full: true, rows: 16, hint: 'فقط عضوهای سایت این متن را می‌بینند' },
-          { key: 'body_en', label: 'متن مقاله (انگلیسی)', type: 'textarea', full: true, rows: 16 },
           { key: 'slug', label: 'آدرس صفحه', type: 'text', full: true, hint: 'خالی بگذارید تا خودکار ساخته شود' }
         ]
       },
@@ -2073,6 +2172,347 @@
     }
 
     // ============================================================
+    // ARTICLE LAYOUT EDITOR
+    // ============================================================
+    /**
+     * An article body is a sequence of blocks the owner places by hand: a
+     * paragraph, then a picture, then whatever comes next. The stored form is
+     * still one text per language (see server/blocks.js), which is why this is a
+     * list of blocks over two texts and not a new field in the database.
+     */
+    const LANGS = ['fa', 'en'];
+    let layout = { fa: [], en: [] };
+    let layoutLang = 'fa';
+    let layoutRaw = false;
+    let layoutDrag = null;
+
+    function newLayoutId() {
+      return 'b' + Math.random().toString(36).slice(2, 9);
+    }
+
+    function layoutBlocks() {
+      return layout[layoutLang];
+    }
+
+    /** Fills a block list from a stored body, then shows its pictures as thumbnails. */
+    function layoutFromBody(text) {
+      return window.DEADVERSE.blocks.parse(text).map((block) => ({
+        blockId: newLayoutId(),
+        kind: block.kind,
+        text: block.text || '',
+        url: block.url || '',
+        busy: false
+      }));
+    }
+
+    /** The two fixed slots an article may still hold from before this editor. */
+    function seedLegacyImages(blocks, item) {
+      if (blocks.some((block) => block.kind === 'image')) return blocks;
+      return [item.midImage, item.lateImage]
+        .filter(Boolean)
+        .reduce((list, url) => list.concat({ blockId: newLayoutId(), kind: 'image', url, text: '', busy: false }), blocks);
+    }
+
+    function findBlock(blockId) {
+      return layoutBlocks().find((block) => block.blockId === blockId);
+    }
+
+    function renderLayout() {
+      const shell = document.getElementById('layoutShell');
+      if (!shell) return;
+      const blocks = layoutBlocks();
+      const imageCount = blocks.filter((block) => block.kind === 'image').length;
+      const words = blocks
+        .filter((block) => block.kind === 'text')
+        .map((block) => block.text)
+        .join(' ')
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean).length;
+
+      shell.innerHTML = `
+        <div class="blocks-bar">
+          <div class="blocks-lang">
+            <button type="button" data-layout="lang-fa" class="${layoutLang === 'fa' ? 'active' : ''}">فارسی</button>
+            <button type="button" data-layout="lang-en" class="${layoutLang === 'en' ? 'active' : ''}">English</button>
+          </div>
+          <button type="button" data-layout="add-text">＋ پاراگراف</button>
+          <button type="button" data-layout="add-image">🖼 تصویر</button>
+          <div class="blocks-mode">
+            <button type="button" data-layout="mode-visual" class="${!layoutRaw ? 'active' : ''}">چیدمان</button>
+            <button type="button" data-layout="mode-raw" class="${layoutRaw ? 'active' : ''}">متن ساده</button>
+          </div>
+        </div>
+        ${layoutRaw ? `
+          <div class="blocks-raw">
+            <textarea id="layoutRawText" spellcheck="false" placeholder="پاراگراف‌ها را با یک خط خالی جدا کنید…"></textarea>
+            <div class="blocks-hint" style="padding:10px 0 0;">
+              هر بلوک با یک خط خالی جدا می‌شود. تصویر این‌طور نوشته می‌شود:
+              <code style="direction:ltr">[[img:/api/media/md_…]]</code>
+            </div>
+          </div>` : `
+          <div class="blocks-list" id="layoutList">
+            ${blocks.length ? blocks.map(layoutBlockHtml).join('') : `
+              <div class="blocks-empty">
+                هنوز بلوکی ندارید — «＋ پاراگراف» را بزنید تا نوشتن شروع شود.
+              </div>`}
+          </div>
+          <div class="blocks-hint">
+            با دستگیره‌ی ⠿ بلوک‌ها را جابه‌جا کنید (یا با ↑↓). ${imageCount} تصویر بین متن چیده شده — ${words} کلمه در این زبان.
+            فقط عضوهای سایت متن مقاله را می‌بینند.
+          </div>`}
+      `;
+
+      if (layoutRaw) {
+        const raw = document.getElementById('layoutRawText');
+        raw.value = window.DEADVERSE.blocks.serialize(blocks);
+      } else {
+        // Keep each paragraph the height of its own content, so the panel never
+        // turns into a column of scrollbars.
+        blocks.forEach((block) => autoGrow(document.getElementById('blkText_' + block.blockId)));
+      }
+      shell.setAttribute('data-lang', layoutLang);
+      shell.setAttribute('dir', layoutLang === 'fa' ? 'rtl' : 'ltr');
+    }
+
+    function autoGrow(el) {
+      if (!el) return;
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight + 2, 520) + 'px';
+    }
+
+    function layoutBlockHtml(block) {
+      const tools = `
+        <div class="blk-tools">
+          <button type="button" data-layout="up" data-block="${esc(block.blockId)}" title="بالا">↑</button>
+          <button type="button" data-layout="down" data-block="${esc(block.blockId)}" title="پایین">↓</button>
+          <button type="button" class="danger" data-layout="remove" data-block="${esc(block.blockId)}" title="حذف بلوک">🗑</button>
+        </div>`;
+      const grip = `<div class="blk-grip" draggable="true" data-layout="grip" data-block="${esc(block.blockId)}" title="برای جابه‌جایی بکشید">⠿</div>`;
+
+      if (block.kind === 'image') {
+        const src = window.DEADVERSE.mediaSrc(block.url);
+        const empty = block.url
+          ? 'این آدرس تصویر بارگذاری نمی‌شود (فقط https:// یا /api/media/…)'
+          : 'تصویری انتخاب نشده';
+        return `
+          <div class="blk" data-block-id="${esc(block.blockId)}">
+            ${grip}
+            <div class="blk-main">
+              <div class="blk-meta"><span>🖼 تصویر</span></div>
+              <div class="blk-img">
+                ${src ? `<img src="${esc(src)}" alt="" />` : `<span style="font-size:0.75rem;color:var(--text-dim)">${empty}</span>`}
+                <label class="upload-btn" for="blkFile_${esc(block.blockId)}">${block.busy ? 'در حال آپلود…' : '📁 انتخاب تصویر'}</label>
+                <input type="file" id="blkFile_${esc(block.blockId)}" accept="image/*" style="display:none;" onchange="layoutUpload(event, '${esc(block.blockId)}')" />
+                <input class="img-src" type="text" spellcheck="false" dir="ltr" value="${esc(block.url)}"
+                  placeholder="https://… یا /api/media/md_…"
+                  onchange="layoutImageSrc('${esc(block.blockId)}', this)" />
+              </div>
+            </div>
+            ${tools}
+          </div>`;
+      }
+      return `
+        <div class="blk" data-block-id="${esc(block.blockId)}">
+          ${grip}
+          <div class="blk-main">
+            <textarea id="blkText_${esc(block.blockId)}" data-layout="text" data-block="${esc(block.blockId)}"
+              placeholder="پاراگراف…" oninput="layoutTextInput('${esc(block.blockId)}', this)">${esc(block.text)}</textarea>
+            <div class="blk-meta">
+              <span>¶ پاراگراف</span>
+              <button type="button" class="linklike" data-layout="insert-image-after" data-block="${esc(block.blockId)}">＋ تصویر اینجا</button>
+            </div>
+          </div>
+          ${tools}
+        </div>`;
+    }
+
+    function layoutTextInput(blockId, el) {
+      const block = findBlock(blockId);
+      if (!block) return;
+      block.text = el.value;
+      autoGrow(el);
+    }
+
+    /**
+     * An image block also takes its address from the keyboard, so an external
+     * poster can be placed without uploading it. A half-typed address only shows
+     * a warning here — serialising drops it, and the API refuses to store it.
+     */
+    function layoutImageSrc(blockId, el) {
+      const block = findBlock(blockId);
+      if (!block) return;
+      block.url = el.value.trim();
+      renderLayout();
+    }
+
+    /** One place that decides what a block click means, so the markup stays dumb. */
+    function layoutAction(action) {
+      const button = action.target.closest('[data-layout]');
+      if (!button) return;
+      const kind = button.dataset.layout;
+      let blockId = button.dataset.block;
+
+      // Whatever is typed in the plain-text box is the article at this moment, so
+      // it becomes the blocks before any button changes them — otherwise the fresh
+      // typing would be overwritten by the older block list.
+      commitRawLayout();
+      if (kind === 'add-text' || kind === 'add-image') {
+        // Inserting is a visual act; the plain-text box has no block to show.
+        layoutRaw = false;
+        blockId = null;
+      }
+
+      if (kind === 'lang-fa' || kind === 'lang-en') {
+        layoutLang = kind === 'lang-fa' ? 'fa' : 'en';
+        renderLayout();
+        return;
+      }
+      if (kind === 'mode-visual' || kind === 'mode-raw') {
+        // Switching language tabs commits the box too (handled above).
+        layoutRaw = kind === 'mode-raw';
+        renderLayout();
+        return;
+      }
+      if (kind === 'add-text') {
+        layoutBlocks().push({ blockId: newLayoutId(), kind: 'text', text: '', busy: false });
+        renderLayout();
+        const list = document.getElementById('layoutList');
+        const last = list && list.lastElementChild;
+        if (last) last.querySelector('textarea').focus();
+        return;
+      }
+      if (kind === 'add-image' || kind === 'insert-image-after') {
+        const block = { blockId: newLayoutId(), kind: 'image', url: '', text: '', busy: false };
+        const list = layoutBlocks();
+        if (kind === 'add-image') list.push(block);
+        else {
+          const at = list.findIndex((row) => row.blockId === blockId);
+          list.splice(at + 1, 0, block);
+        }
+        renderLayout();
+        const picker = document.getElementById('blkFile_' + block.blockId);
+        if (picker) picker.click();
+        return;
+      }
+      if (kind === 'remove') {
+        const list = layoutBlocks();
+        const at = list.findIndex((row) => row.blockId === blockId);
+        if (at >= 0) list.splice(at, 1);
+        renderLayout();
+        return;
+      }
+      if (kind === 'up' || kind === 'down') {
+        moveBlock(blockId, kind === 'up' ? -1 : 1);
+        renderLayout();
+      }
+    }
+
+    function moveBlock(blockId, delta) {
+      const list = layoutBlocks();
+      const at = list.findIndex((row) => row.blockId === blockId);
+      const to = at + delta;
+      if (at < 0 || to < 0 || to >= list.length) return;
+      const [block] = list.splice(at, 1);
+      list.splice(to, 0, block);
+    }
+
+    /** Typing in «متن ساده» mode must not be lost when the tabs are switched. */
+    function commitRawLayout() {
+      if (!layoutRaw) return;
+      const raw = document.getElementById('layoutRawText');
+      if (!raw) return;
+      layout[layoutLang] = window.DEADVERSE.blocks.parse(raw.value)
+        .map((block) => ({ blockId: newLayoutId(), kind: block.kind, text: block.text || '', url: block.url || '', busy: false }));
+    }
+
+    async function layoutUpload(event, blockId) {
+      const file = event.target.files[0];
+      event.target.value = '';
+      const block = findBlock(blockId);
+      if (!file || !block) return;
+      if (!file.type.startsWith('image/')) {
+        toast('فایل انتخاب شده تصویر نیست', 'error');
+        return;
+      }
+      if (file.size > MAX_SOURCE_BYTES) {
+        toast('حجم فایل اصلی بیش از ۱۲ مگابایت است', 'error');
+        return;
+      }
+      block.busy = true;
+      renderLayout();
+      try {
+        const blob = await prepareImage(file);
+        if (blob.size > MAX_UPLOAD_BYTES) throw new Error('تصویر فشرده‌شده هنوز بیش از ۴ مگابایت است — ابعاد را کمتر کن');
+        const result = await api.postMedia(blob);
+        block.url = result.data.url;
+        toast(`تصویر آپلود شد (${formatBytes(result.data.bytes)}) — پس از ذخیره در همان جای بلوک نمایش داده می‌شود`);
+      } catch (error) {
+        const list = layoutBlocks();
+        const at = list.indexOf(block);
+        if (at >= 0 && !block.url) list.splice(at, 1);
+        if (error.status === 401) expireSession();
+        else toast(error.message || 'آپلود تصویر ناموفق بود', 'error');
+      } finally {
+        block.busy = false;
+        renderLayout();
+      }
+    }
+
+    function wireLayoutDragAndDrop() {
+      const form = document.getElementById('modalForm');
+      form.addEventListener('dragstart', (e) => {
+        const grip = e.target.closest('[data-layout="grip"]');
+        if (!grip) return;
+        layoutDrag = grip.dataset.block;
+        grip.closest('.blk').classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        // Firefox starts a drag only when something is set.
+        e.dataTransfer.setData('text/plain', layoutDrag);
+      });
+      form.addEventListener('dragover', (e) => {
+        if (!layoutDrag) return;
+        const row = e.target.closest('.blk');
+        if (!row) return;
+        e.preventDefault();
+        const rect = row.getBoundingClientRect();
+        const after = e.clientY > rect.top + rect.height / 2;
+        row.classList.toggle('drop-after', after);
+        row.classList.toggle('drop-before', !after);
+      });
+      form.addEventListener('dragleave', (e) => {
+        const row = e.target.closest('.blk');
+        if (row) row.classList.remove('drop-after', 'drop-before');
+      });
+      form.addEventListener('drop', (e) => {
+        if (!layoutDrag) return;
+        const row = e.target.closest('.blk');
+        e.preventDefault();
+        if (!row) return;
+        const list = layoutBlocks();
+        const from = list.findIndex((block) => block.blockId === layoutDrag);
+        row.classList.remove('drop-after', 'drop-before');
+        if (from < 0) return;
+        const after = e.clientY > row.getBoundingClientRect().top + row.getBoundingClientRect().height / 2;
+        const targetId = row.dataset.blockId;
+        let to = list.findIndex((block) => block.blockId === targetId);
+        if (to < 0) return;
+        if (after) to += 1;
+        const [block] = list.splice(from, 1);
+        if (from < to) to -= 1;
+        list.splice(to, 0, block);
+        layoutDrag = null;
+        renderLayout();
+      });
+      form.addEventListener('dragend', () => {
+        layoutDrag = null;
+        document.querySelectorAll('.blk.dragging').forEach((el) => el.classList.remove('dragging'));
+        document.querySelectorAll('.blk.drop-after, .blk.drop-before')
+          .forEach((el) => el.classList.remove('drop-after', 'drop-before'));
+      });
+    }
+
+    // ============================================================
     // MODAL
     // ============================================================
     function findItem(type, itemId) {
@@ -2089,6 +2529,7 @@
 
       const form = document.getElementById('modalForm');
       form.className = 'form-grid';
+      document.querySelector('#modalOverlay .modal').classList.toggle('wide', Boolean(cfg.blocks));
       let html = '';
 
       if (cfg.imageFields) {
@@ -2119,7 +2560,25 @@
         </div>`;
       }).join('');
 
+      if (cfg.blocks) {
+        layout = {
+          fa: seedLegacyImages(layoutFromBody(item.body_fa), item),
+          en: seedLegacyImages(layoutFromBody(item.body_en), item)
+        };
+        // A brand-new article opens with its first paragraph already on the page:
+        // the owner starts typing instead of hunting for the button.
+        if (!id && !layout.fa.length) layout.fa.push({ blockId: newLayoutId(), kind: 'text', text: '', url: '', busy: false });
+        layoutLang = 'fa';
+        layoutRaw = false;
+        html += `
+          <div class="form-field full">
+            <label>چیدمان متن مقاله <span class="req">*</span></label>
+            <div class="blocks-shell" id="layoutShell"></div>
+          </div>`;
+      }
+
       form.innerHTML = html;
+      if (cfg.blocks) renderLayout();
       document.getElementById('modalSaveBtn').dataset.error = '';
       document.getElementById('modalOverlay').classList.add('open');
     }
@@ -2128,6 +2587,27 @@
       document.getElementById('modalOverlay').classList.remove('open');
       modalState = { type: null, id: null };
       pendingImages = {};
+      layout = { fa: [], en: [] };
+      layoutRaw = false;
+    }
+
+    /**
+     * The editor's blocks are the article body: serialised back into the two text
+     * columns the API already stores. A hand-typed marker that is not a loadable
+     * image is caught here, so the owner sees it in the panel and not on the site.
+     */
+    function layoutBodies() {
+      commitRawLayout();
+      const out = {};
+      for (const lang of LANGS) {
+        const text = window.DEADVERSE.blocks.serialize(layout[lang]);
+        const bad = window.DEADVERSE.blocks.badImages(text);
+        if (bad.length) {
+          throw new Error(`آدرس تصویر در متن ${lang === 'fa' ? 'فارسی' : 'انگلیسی'} معتبر نیست: ${bad[0]}`);
+        }
+        out['body_' + lang] = text;
+      }
+      return out;
     }
 
     async function saveModal() {
@@ -2146,6 +2626,19 @@
         if (problem) valid = false;
         body[f.key] = f.type === 'number' && val !== '' ? Number(val) : val;
       });
+
+      if (cfg.blocks) {
+        try {
+          Object.assign(body, layoutBodies());
+        } catch (error) {
+          toast(error.message, 'error');
+          return;
+        }
+        if (!body.body_fa.trim() && !body.body_en.trim()) {
+          toast('متن مقاله خالی است — حداقل یک پاراگراف بنویسید', 'error');
+          return;
+        }
+      }
 
       (cfg.imageFields || []).forEach(f => {
         const chosen = pendingImages[f.key];
@@ -2788,6 +3281,10 @@
     document.getElementById('modalOverlay').addEventListener('click', e => {
       if (e.target.id === 'modalOverlay') closeModal();
     });
+    // The layout editor rebuilds its own markup, so its buttons are handled by
+    // one delegated listener on the form rather than per-render bindings.
+    document.getElementById('modalForm').addEventListener('click', layoutAction);
+    wireLayoutDragAndDrop();
     document.getElementById('staffOverlay').addEventListener('click', e => {
       if (e.target.id === 'staffOverlay') closeStaffModal();
     });
@@ -2805,12 +3302,18 @@
       const tag = document.getElementById('envTag');
       const env = window.DEADVERSE.environment();
       tag.dataset.env = env;
-      const label = {
-        local: 'نسخه‌ی لوکال',
-        production: 'نسخه‌ی زنده (Vercel)',
-        external: 'آدرس دستی'
-      }[env];
-      tag.textContent = `${label} • ${window.DEADVERSE.apiBase}`;
+      /*
+       * The one question this tag exists to answer is «کدام نسخه را دارم ویرایش
+       * می‌کنم», so it prints the address of the site being edited. The hosting
+       * provider and a bare /api path answered nothing, and mixing the local copy
+       * with the live one is the mistake people actually make.
+       */
+      const label = { local: 'نسخه‌ی لوکال', external: 'آدرس دستی', production: 'نسخه‌ی زنده' }[env];
+      const address = env === 'production'
+        ? window.location.origin
+        : window.DEADVERSE.apiBase.replace(/^https?:\/\//, '');
+      tag.textContent = `${label} • ${address}`;
+      tag.title = `پنل با این آدرس کار می‌کند: ${window.DEADVERSE.apiBase}`;
     }
 
     async function init() {

@@ -41,8 +41,9 @@ const ENTITIES = {
     table: 'comics',
     prefix: ID_PREFIX.comic,
     hasSlug: true,
-    fields: ['title_fa', 'title_en', 'publisher', 'year', 'desc_fa', 'desc_en', 'body_fa', 'body_en', 'slug'],
+    fields: ['title_fa', 'title_en', 'publisher', 'year', 'desc_fa', 'desc_en', 'body_fa', 'body_en', 'slug', 'download_url'],
     images: [{ url: 'image_url', pid: 'image_public_id', input: 'image', pidInput: 'imagePublicId' }],
+    bodies: ['body_fa', 'body_en'],
     slugSource: (values) => values.title_en || values.title_fa,
     toClient: (r) => ({
       id: r.id,
@@ -55,6 +56,7 @@ const ENTITIES = {
       desc_en: r.desc_en,
       body_fa: r.body_fa,
       body_en: r.body_en,
+      downloadUrl: r.download_url,
       image: r.image_url
     })
   },
@@ -68,6 +70,9 @@ const ENTITIES = {
       { url: 'mid_image_url', pid: 'mid_image_pid', input: 'midImage', pidInput: 'midImagePublicId' },
       { url: 'late_image_url', pid: 'late_image_pid', input: 'lateImage', pidInput: 'lateImagePublicId' }
     ],
+    // The panel places pictures inside these two columns, so the bytes they
+    // point at belong to the body, not to a fixed slot (see server/blocks.js).
+    bodies: ['body_fa', 'body_en'],
     slugSource: (values) => values.title_en || values.title_fa,
     toClient: (r) => ({
       id: r.id,

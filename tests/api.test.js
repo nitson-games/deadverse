@@ -32,7 +32,7 @@ describe('public API', () => {
     const { body } = await request(app).get('/api/bootstrap');
     assert.deepEqual(
       Object.keys(body.comics[0]).sort(),
-      ['desc_en', 'desc_fa', 'id', 'image', 'publisher', 'slug', 'title_en', 'title_fa', 'year']
+      ['desc_en', 'desc_fa', 'downloadUrl', 'id', 'image', 'publisher', 'slug', 'title_en', 'title_fa', 'year']
     );
     assert.equal(typeof body.comics[0].year, 'number');
     assert.equal(typeof body.movies[0].rating, 'number');
@@ -233,6 +233,36 @@ describe('collection CRUD', () => {
     assert.equal(jsUri.status, 400);
   });
 
+  it('keeps a comic download link and refuses a fake one', async () => {
+    const { app } = await boot();
+    const token = await tokenFor(app);
+    const auth = { Authorization: `Bearer ${token}` };
+
+    const created = await request(app)
+      .post('/api/admin/comics')
+      .set(auth)
+      .send({ ...validComic, downloadUrl: 'https://dl.example.com/ultimate-cry.pdf' });
+    assert.equal(created.status, 201);
+    assert.equal(created.body.downloadUrl, 'https://dl.example.com/ultimate-cry.pdf');
+
+    const cleared = await request(app)
+      .put(`/api/admin/comics/${created.body.id}`)
+      .set(auth)
+      .send({ ...created.body, downloadUrl: '' });
+    assert.equal(cleared.body.downloadUrl, '', 'کمیک می‌تواند بدون لینک دانلود بماند');
+
+    await request(app).delete(`/api/admin/comics/${created.body.id}`).set(auth);
+
+    for (const link of ['javascript:alert(1)', 'ftp://dl.example.com/c.pdf', '/comics/spider-man']) {
+      const bad = await request(app)
+        .post('/api/admin/comics')
+        .set(auth)
+        .send({ ...validComic, downloadUrl: link });
+      assert.equal(bad.status, 400, `${link} باید رد شود`);
+      assert.ok(bad.body.error.details.some((d) => d.field === 'downloadUrl'), 'پنل باید بداند کدام فیلد خراب است');
+    }
+  });
+
   it('round-trips the article, movie, character and team shapes', async () => {
     const { app } = await boot();
     const token = await tokenFor(app);
@@ -415,6 +445,123 @@ describe('media stored in the database', () => {
     assert.ok(withImage, 'the imported row lost its picture');
     const served = await request(app).get(`/api/media/${uploaded.body.id}`);
     assert.equal(served.status, 200, 'imported reference does not resolve');
+  });
+});
+
+describe('pictures placed inside an article body', () => {
+  const upload = (app, token, bytes) =>
+    request(app).post('/api/admin/media').set('Authorization', `Bearer ${token}`).type('image/png').send(bytes);
+
+  const article = {
+    title_fa: 'مقاله',
+    title_en: 'Article',
+    cat: 'marvel',
+    date_fa: 'مهر ۱۴۰۴',
+    date_en: 'Oct 2026',
+    desc_fa: 'خلاصه',
+    desc_en: 'Summary'
+  };
+
+  it('keeps the marker lines exactly as the editor wrote them', async () => {
+    const { app } = await boot();
+    const token = await tokenFor(app);
+    const body = `پاراگراف اول\n\n[[img:${EXTERNAL_IMG}]]\n\nپاراگراف دوم`;
+
+    const created = await request(app)
+      .post('/api/admin/articles')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ ...article, body_fa: body });
+    assert.equal(created.status, 201, JSON.stringify(created.body));
+    assert.equal(created.body.body_fa, body, 'جای تصویر در متن نباید دگرگون شود');
+
+    const edited = await request(app)
+      .put(`/api/admin/articles/${created.body.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ ...created.body, body_fa: `[[img:${EXTERNAL_IMG}]]\n\nمتن` });
+    assert.deepEqual(edited.body.body_fa.split('\n\n'), [`[[img:${EXTERNAL_IMG}]]`, 'متن'], 'تصویر جابه‌جا شد');
+  });
+
+  it('refuses a marker whose address the page must never load', async () => {
+    const { app } = await boot();
+    const token = await tokenFor(app);
+    for (const marker of [
+      '[[img:javascript:alert(1)]]',
+      '[[img:data:image/svg+xml,%3Csvg/%3E]]',
+      '[[img:http://evil.example/a.jpg]]',
+      '[[img:/api/media/not_a_real_id]]'
+    ]) {
+      const res = await request(app)
+        .post('/api/admin/articles')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ ...article, body_fa: `متن\n\n${marker}` });
+      assert.equal(res.status, 400, `${marker} باید رد می‌شد`);
+      assert.ok(res.body.error.details.some((d) => d.field === 'body_fa'), 'پنل باید بداند کدام فیلد خراب است');
+    }
+
+    // A paragraph that merely *talks about* the syntax escapes it, and stays text.
+    const doc = await request(app)
+      .post('/api/admin/articles')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ ...article, body_fa: 'نمونه:\n\\[[img:javascript:alert(1)]]' });
+    assert.equal(doc.status, 201, JSON.stringify(doc.body));
+    assert.equal(doc.body.body_fa, 'نمونه:\n\\[[img:javascript:alert(1)]]');
+  });
+
+  it('caps how many pictures one article can carry', async () => {
+    const { app } = await boot();
+    const token = await tokenFor(app);
+    const wall = Array.from({ length: 25 }, () => `[[img:${EXTERNAL_IMG}]]`).join('\n\n');
+    const tooMany = await request(app)
+      .post('/api/admin/articles')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ ...article, body_fa: wall });
+    assert.equal(tooMany.status, 400);
+
+    const body = Array.from({ length: 24 }, () => `[[img:${EXTERNAL_IMG}]]`).join('\n\n');
+    const fits = await request(app)
+      .post('/api/admin/articles')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ ...article, body_fa: body });
+    assert.equal(fits.status, 201, JSON.stringify(fits.body));
+  });
+
+  it('frees body bytes only when neither a slot nor a marker still refers to them', async () => {
+    const { app, store } = await boot();
+    const token = await tokenFor(app);
+    const auth = { Authorization: `Bearer ${token}` };
+    const cover = await upload(app, token, PNG_PIXEL);
+    const kept = await upload(app, token, PNG_PIXEL);
+    const dropped = await upload(app, token, PNG_PIXEL);
+
+    const created = await request(app)
+      .post('/api/admin/articles')
+      .set(auth)
+      .send({
+        ...article,
+        coverImage: cover.body.url,
+        coverImagePublicId: cover.body.id,
+        body_fa: `متن\n\n[[img:${kept.body.url}]]\n\n[[img:${dropped.body.url}]]`
+      });
+    assert.equal(created.status, 201, JSON.stringify(created.body));
+
+    const edited = await request(app)
+      .put(`/api/admin/articles/${created.body.id}`)
+      .set(auth)
+      .send({ ...created.body, body_fa: `متن\n\n[[img:${kept.body.url}]]` });
+    assert.equal(edited.status, 200);
+    assert.ok(!store.media.has(dropped.body.id), 'تصویرِ حذف‌شده از متن باید آزاد شود');
+    assert.ok(store.media.has(kept.body.id), 'تصویری که هنوز در متن است نباید برود');
+    assert.ok(store.media.has(cover.body.id), 'کاور دست نخورده است');
+
+    const moved = await request(app)
+      .put(`/api/admin/articles/${created.body.id}`)
+      .set(auth)
+      .send({ ...edited.body, midImage: kept.body.url, body_fa: 'متن بدون تصویر' });
+    assert.equal(moved.status, 200);
+    assert.ok(store.media.has(kept.body.id), 'همان بایت حالا در اسلات میانی زندگی می‌کند');
+
+    await request(app).delete(`/api/admin/articles/${created.body.id}`).set(auth);
+    assert.ok(!store.media.has(cover.body.id) && !store.media.has(kept.body.id), 'حذف مقاله باید همه‌ی بایت‌هایش را آزاد کند');
   });
 });
 

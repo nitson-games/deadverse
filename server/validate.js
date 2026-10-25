@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import { badRequest } from './errors.js';
 import { PERMISSIONS } from './permissions.js';
-import { MEDIA_ID_PATTERN } from './media.js';
+import { MEDIA_REF_PREFIX, isMediaRef } from './media.js';
+import { articleBodyError } from './blocks.js';
 import { SLUG_PATTERN } from './repo.js';
 
 const TEXT_MAX = 4000;
@@ -18,17 +19,16 @@ const optionalText = (max = TEXT_MAX) => z.string().trim().max(max).default('');
  * stored bytes from. `javascript:`/`data:` payloads are rejected by both tests,
  * and the relative form is what keeps an image working after the domain changes.
  */
-export const MEDIA_REF_PREFIX = '/api/media/';
+export { MEDIA_REF_PREFIX };
 
-const isMediaRef = (v) =>
-  v.startsWith(MEDIA_REF_PREFIX) && MEDIA_ID_PATTERN.test(v.slice(MEDIA_REF_PREFIX.length));
+const isStorableImageValue = (v) => /^https:\/\//i.test(v) || isMediaRef(v);
 
 export function isStorableImage(value) {
   if (typeof value !== 'string') return false;
   const v = value.trim();
   if (!v) return true;
   if (v.length > URL_MAX) return false;
-  return /^https:\/\//i.test(v) || isMediaRef(v);
+  return isStorableImageValue(v);
 }
 
 const imageUrl = z
@@ -67,6 +67,16 @@ const rating = z.coerce.number().min(0).max(10);
 const bodyText = z.string().max(60_000).default('');
 
 /**
+ * An article body additionally carries the picture lines the panel places
+ * between paragraphs. The address in one of those lines becomes an `<img src>`
+ * on a public page, so it is checked here and never trusted from the browser.
+ */
+const articleBody = bodyText.superRefine((value, issue) => {
+  const problem = articleBodyError(value);
+  if (problem) issue.addIssue({ code: z.ZodIssueCode.custom, message: problem });
+});
+
+/**
  * Empty means "make one for me": repo.js derives the address from the English
  * title and adds a counter if it is taken, so the panel can leave this blank and
  * still get a shareable link.
@@ -82,11 +92,12 @@ const slug = z
   });
 
 /**
- * Where to watch a film. http is allowed next to https because plenty of
- * streaming links are still plain http; the scheme check is what keeps a
- * `javascript:` string out of an anchor.
+ * An outgoing link on a page: where to watch a film, where to download a comic.
+ * http is allowed next to https because plenty of streaming links are still
+ * plain http; the scheme check is what keeps a `javascript:` string out of an
+ * anchor.
  */
-const watchUrl = z
+const optionalLink = z
   .string()
   .trim()
   .default('')
@@ -94,19 +105,23 @@ const watchUrl = z
     message: 'لینک باید با http:// یا https:// شروع شود یا خالی بماند'
   });
 
-export const comicSchema = z.object({
-  title_fa: requiredText(),
-  title_en: requiredText(),
-  publisher,
-  year,
-  desc_fa: optionalText(),
-  desc_en: optionalText(),
-  body_fa: bodyText,
-  body_en: bodyText,
-  slug,
-  image: imageUrl,
-  imagePublicId: publicId
-});
+export const comicSchema = z
+  .object({
+    title_fa: requiredText(),
+    title_en: requiredText(),
+    publisher,
+    year,
+    desc_fa: optionalText(),
+    desc_en: optionalText(),
+    body_fa: bodyText,
+    body_en: bodyText,
+    slug,
+    downloadUrl: optionalLink,
+    image: imageUrl,
+    imagePublicId: publicId
+  })
+  // The panel speaks camelCase like the rest of the wire shape; the column is snake.
+  .transform(({ downloadUrl: link, ...rest }) => ({ ...rest, download_url: link }));
 
 export const articleSchema = z
   .object({
@@ -117,8 +132,8 @@ export const articleSchema = z
     date_en: requiredText(80),
     desc_fa: optionalText(),
     desc_en: optionalText(),
-    body_fa: bodyText,
-    body_en: bodyText,
+    body_fa: articleBody,
+    body_en: articleBody,
     slug,
     coverImage: imageUrl,
     coverImagePublicId: publicId,
@@ -141,7 +156,7 @@ export const movieSchema = z
     body_fa: bodyText,
     body_en: bodyText,
     slug,
-    watchUrl,
+    watchUrl: optionalLink,
     image: imageUrl,
     imagePublicId: publicId
   })

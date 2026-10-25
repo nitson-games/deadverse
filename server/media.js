@@ -6,6 +6,23 @@
 export const MAX_MEDIA_BYTES = 4 * 1024 * 1024;
 export const MEDIA_ID_PATTERN = /^md_[0-9a-z]+$/;
 
+/** Where the API serves its own bytes from. Relative on purpose: a record keeps
+    working when the domain changes, and the browser resolves it against apiBase. */
+export const MEDIA_REF_PREFIX = '/api/media/';
+
+export function isMediaRef(value) {
+  return (
+    typeof value === 'string' &&
+    value.startsWith(MEDIA_REF_PREFIX) &&
+    MEDIA_ID_PATTERN.test(value.slice(MEDIA_REF_PREFIX.length))
+  );
+}
+
+/** The stored-bytes id behind an image address — '' for an external URL. */
+export function mediaIdOf(url) {
+  return isMediaRef(url) ? url.slice(MEDIA_REF_PREFIX.length) : '';
+}
+
 /**
  * The declared content-type is a client claim; the first bytes decide. Without
  * this an attacker could store HTML or a script and have the API serve it back

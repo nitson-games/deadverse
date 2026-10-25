@@ -24,7 +24,8 @@ import {
 import { adminPasswordSchema, adminProfileSchema, createAdminSchema, isStorableImage, MEDIA_REF_PREFIX } from './validate.js';
 import { ENTITIES } from './repo.js';
 import { id, ID_PREFIX } from './ids.js';
-import { MAX_MEDIA_BYTES, MEDIA_ID_PATTERN, detectImageType } from './media.js';
+import { MAX_MEDIA_BYTES, MEDIA_ID_PATTERN, detectImageType, mediaIdOf } from './media.js';
+import { mediaIdsInBody } from './blocks.js';
 import { SEEDS, SITE_SEED, EMPTY_SITE_CLIENT, seedInputs } from './seed.js';
 
 const COLLECTIONS = {
@@ -89,16 +90,30 @@ function validationError(error) {
  * A stored picture is released when its slot now holds a different URL (or none).
  * Comparing URLs rather than ids means an edit that never re-uploaded cannot
  * accidentally delete the image still on screen.
+ *
+ * A picture placed inside an article body has no slot at all, so the two body
+ * columns are read the same way: every media id the old row pointed at minus
+ * every id the new input still points at is one the database may forget.
  */
-function releasedMediaIds(type, oldRow, nextInput) {
-  const released = [];
-  for (const image of ENTITIES[type].images) {
-    const previousPid = oldRow?.[image.pid] || '';
-    const previousUrl = oldRow?.[image.url] || '';
-    const nextUrl = nextInput[image.input] || '';
-    if (previousPid && previousUrl !== nextUrl) released.push(previousPid);
+function mediaIdsReferenced(entity, values) {
+  const found = [];
+  for (const image of entity.images) {
+    const url = values[image.url] !== undefined ? values[image.url] : values[image.input];
+    const idFromUrl = mediaIdOf(String(url || ''));
+    if (idFromUrl) found.push(idFromUrl);
+    const pid = values[image.pid] !== undefined ? values[image.pid] : values[image.pidInput];
+    if (!idFromUrl && pid && MEDIA_ID_PATTERN.test(String(pid))) found.push(String(pid));
   }
-  return released;
+  for (const field of entity.bodies || []) {
+    found.push(...mediaIdsInBody(String(values[field] || '')));
+  }
+  return found;
+}
+
+function releasedMediaIds(entity, oldRow, nextInput) {
+  const before = new Set(mediaIdsReferenced(entity, oldRow || {}));
+  const after = new Set(mediaIdsReferenced(entity, nextInput || {}));
+  return [...before].filter((mediaId) => !after.has(mediaId));
 }
 
 /** Keep the stored media id when the picture itself was not replaced. */
@@ -543,7 +558,7 @@ export function buildRoutes(ctx) {
       const oldRow = await repo.findRaw(type, req.params.id);
       if (!oldRow) throw notFound('این مورد وجود ندارد یا حذف شده است');
       const updated = await repo.update(type, req.params.id, carryOverPids(type, oldRow, input));
-      await ctx.releaseMedia(releasedMediaIds(type, oldRow, input));
+      await ctx.releaseMedia(releasedMediaIds(ENTITIES[type], oldRow, input));
       res.json(updated);
     }));
 
@@ -551,7 +566,9 @@ export function buildRoutes(ctx) {
       const oldRow = await repo.findRaw(type, req.params.id);
       if (!oldRow) throw notFound('این مورد وجود ندارد یا حذف شده است');
       const removed = await repo.remove(type, req.params.id);
-      await ctx.releaseMedia(ENTITIES[type].images.map((image) => oldRow[image.pid]).filter(Boolean));
+      // Deleting the record also frees the bytes only it pointed at — including
+      // pictures placed inside a body, which have no slot column of their own.
+      await ctx.releaseMedia(mediaIdsReferenced(ENTITIES[type], oldRow));
       res.json({ ok: true, removed });
     }));
   }
