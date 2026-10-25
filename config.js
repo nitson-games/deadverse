@@ -1,16 +1,15 @@
 /*
- * DEADVERSE API address — the ONE place to edit after deploying.
+ * DEADVERSE API address.
  *
- * Rule of thumb:
- *  - site + API both on Vercel          -> nothing to change ("/api" same origin)
- *  - GitHub Pages site + Vercel API     -> set API_BASE to https://<project>.vercel.app/api
- *  - opening the files locally           -> uses the dev server on 127.0.0.1:3000
+ * The API ships with the site, so the page asks the origin it was loaded from:
+ * deadverse.ir, www.deadverse.ir, *.vercel.app and every preview URL answer /api
+ * themselves. Same origin needs no CORS entry and no ALLOWED_ORIGINS change, so
+ * pointing a new domain at the project is enough — no redeploy, no code edit.
  *
- * Temporary override while testing: append ?api=https://your-api.vercel.app/api to the URL.
+ *  - opening the files locally   -> dev server on 127.0.0.1:3000
+ *  - a static-only host (Pages)  -> append ?api=https://<api-host>/api to the URL
  */
 (function () {
-  var API_BASE = 'https://deadverse.vercel.app/api';
-
   function resolve() {
     var query = new URLSearchParams(window.location.search).get('api');
     if (query) return query.replace(/\/+$/, '');
@@ -18,8 +17,7 @@
     var host = window.location.hostname;
     if (window.location.protocol === 'file:') return 'http://127.0.0.1:3000/api';
     if (host === 'localhost' || host === '127.0.0.1') return 'http://127.0.0.1:3000/api';
-    if (/(^|\.)(vercel\.app|netlify\.app)$/i.test(host)) return '/api';
-    return API_BASE.replace(/\/+$/, '');
+    return '/api';
   }
 
   function toResult(response) {

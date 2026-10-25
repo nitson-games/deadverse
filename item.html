@@ -10,11 +10,14 @@
   <meta property="og:type" content="article" />
   <meta property="og:site_name" content="DEADVERSE" />
   <meta property="og:title" content="DEADVERSE" />
-  <meta property="og:image" content="https://deadverse.vercel.app/og-cover.jpg" />
+  <meta property="og:image" content="https://www.deadverse.ir/og-cover.jpg" />
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Vazirmatn:wght@300;400;600;700;900&display=swap" rel="stylesheet" />
+  <!-- print/onload: the font CSS is fetched after first paint so a slow request
+       cannot hold the whole page blank; the text simply starts in the fallback. -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Vazirmatn:wght@300;400;600;700;900&display=swap" media="print" onload="this.media='all'" />
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Vazirmatn:wght@300;400;600;700;900&display=swap" /></noscript>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -243,6 +246,15 @@
       .header-inner { padding: 12px 14px; }
       .icon-btn .label { display: none; }
       .body-text p { font-size: 0.95rem; }
+    }
+    @media (max-width: 430px) {
+      .container { padding: 0 14px; }
+      .cta-row .btn { flex: 1 1 100%; }
+      .gate-card { padding: 28px 18px; margin: 34px auto; }
+      .lede { font-size: 0.98rem; }
+      /* One long unbroken string (a pasted URL, a hashtags, a slug-like word)
+         would otherwise push the page sideways on a narrow screen. */
+      .body-text p, .lede, .hero h1, .related-body h3 { overflow-wrap: anywhere; }
     }
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {

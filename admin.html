@@ -9,7 +9,10 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <!-- print/onload: the font CSS is fetched after first paint so a slow request
+       cannot hold the whole page blank; the text simply starts in the fallback. -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" media="print" onload="this.media='all'" />
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" /></noscript>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -585,6 +588,10 @@
       table { font-size: 0.8rem; }
       thead th, tbody td { padding: 10px 12px; }
       .td-desc { display: none; }
+      /* a focused field under 16px makes iOS zoom the page in and leave it there */
+      .login-box input, .search-mini input,
+      .form-field input, .form-field select,
+      .form-field textarea { font-size: 1rem; }
     }
     @media (max-width: 480px) {
       .stats-grid { grid-template-columns: 1fr; }
